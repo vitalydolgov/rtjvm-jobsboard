@@ -1,4 +1,4 @@
-package com.example.jobsboard.modules
+package com.example.jobsboard.algebra
 
 import cats.*
 import cats.implicits.*
@@ -9,10 +9,10 @@ import doobie.postgres.implicits.*
 import doobie.util.*
 import java.util.UUID
 
-import com.example.jobsboard.domain.Job.*
+import com.example.jobsboard.domain.job.*
 
 trait Jobs[F[_]] {
-  def create(ownerEmain: String, jobInfo: JobInfo): F[UUID]
+  def create(ownerEmail: String, jobInfo: JobInfo): F[UUID]
   def all(): F[List[Job]]
   def find(id: UUID): F[Option[Job]]
   def update(id: UUID, jobInfo: JobInfo): F[Option[Job]]

@@ -13,63 +13,54 @@ import org.typelevel.log4cats.Logger
 import java.util.UUID
 import scala.collection.mutable
 
-import com.example.jobsboard.domain.Job.*
+import com.example.jobsboard.algebra.*
+import com.example.jobsboard.domain.job.*
 import com.example.jobsboard.http.responses.*
+import com.example.jobsboard.logging.syntax.*
 
-class JobRoutes[F[_]: Concurrent: Logger] private extends Http4sDsl[F] {
-
-  private val database = mutable.Map[UUID, Job]()
+class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends Http4sDsl[F] {
 
   private val allJobsRoute: HttpRoutes[F] = HttpRoutes.of[F] { case POST -> Root =>
-    Ok(database.values)
+    for {
+      jobsList <- jobs.all()
+      resp <- Ok(jobsList)
+    } yield resp
   }
 
   private val findJobRoute: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / UUIDVar(id) =>
-    database.get(id) match {
+    jobs.find(id).flatMap {
       case Some(job) => Ok(job)
       case None      => NotFound(FailureResponse(s"Job $id not found."))
     }
   }
 
-  import com.example.jobsboard.logging.syntax.*
   private val createJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "create" =>
       for {
         jobInfo <- req.as[JobInfo].logError(e => s"Parsing failed: $e")
-        job     <- createJob(jobInfo)
-        _       <- database.put(job.id, job).pure[F]
-        resp    <- Created(job.id)
+        jobId <- jobs.create("TODO@example.com", jobInfo)
+        resp <- Created(jobId)
       } yield resp
   }
 
-  private def createJob(jobInfo: JobInfo) =
-    Job(
-      id = UUID.randomUUID(),
-      date = System.currentTimeMillis(),
-      ownerEmail = "TODO@example.com",
-      jobInfo = jobInfo,
-      active = true
-    ).pure[F]
-
   private val updateJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ PUT -> Root / UUIDVar(id) =>
-      database.get(id) match {
-        case Some(job) =>
-          for {
-            jobInfo <- req.as[JobInfo]
-            _       <- database.put(id, job.copy(jobInfo = jobInfo)).pure[F]
-            resp    <- Ok()
-          } yield resp
-        case None => NotFound(FailureResponse(s"Cannot update: Job $id not found."))
-      }
+      for {
+        jobInfo <- req.as[JobInfo]
+        jobOption <- jobs.update(id, jobInfo)
+        resp <- jobOption match {
+          case Some(_) => Ok()
+          case None    => NotFound(FailureResponse(s"Cannot update: Job $id not found."))
+        }
+      } yield resp
   }
 
   private val deleteJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ DELETE -> Root / UUIDVar(id) =>
-      database.get(id) match {
-        case Some(_) =>
+      jobs.find(id).flatMap {
+        case Some(job) =>
           for {
-            _    <- database.remove(id).pure[F]
+            _ <- jobs.delete(job.id)
             resp <- Ok()
           } yield resp
         case None => NotFound(FailureResponse(s"Cannot delete: Job $id not found."))
@@ -82,5 +73,5 @@ class JobRoutes[F[_]: Concurrent: Logger] private extends Http4sDsl[F] {
 }
 
 object JobRoutes {
-  def apply[F[_]: Concurrent: Logger] = new JobRoutes[F]
+  def apply[F[_]: Concurrent: Logger](jobs: Jobs[F]) = new JobRoutes[F](jobs)
 }
