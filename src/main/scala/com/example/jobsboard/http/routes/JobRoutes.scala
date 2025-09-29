@@ -1,8 +1,8 @@
 package com.example.jobsboard.http.routes
 
-import io.circe.generic.auto.*
 import cats.implicits.*
 import cats.effect.Concurrent
+import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.dsl.*
 import org.http4s.dsl.impl.*
