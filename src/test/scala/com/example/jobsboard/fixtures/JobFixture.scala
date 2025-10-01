@@ -10,7 +10,7 @@ trait JobFixture {
 
   val ScalaDeveloperACME = Job(
     id = UUID.fromString("9283f9f6-65eb-4791-a92c-be32dba0a484"),
-    date = System.currentTimeMillis(),
+    date = 1735689600000L,
     ownerEmail = "hr@acme.com",
     jobInfo = JobInfo(
       company = "ACME Corp",
@@ -29,12 +29,12 @@ trait JobFixture {
       seniority = None,
       other = None
     ),
-    active = true
+    active = false
   )
 
   val ScalaDeveloperACMEUpdated = Job(
     id = UUID.fromString("9283f9f6-65eb-4791-a92c-be32dba0a484"),
-    date = System.currentTimeMillis(),
+    date = 1735689600000L,
     ownerEmail = "hr@acme.com",
     jobInfo = JobInfo(
       company = "ACME Corp",
@@ -53,6 +53,30 @@ trait JobFixture {
       seniority = None,
       other = None
     ),
-    active = true
+    active = false
+  )
+
+  val JavaDeveloperTechCorp = Job(
+    id = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+    date = 1735689600000L,
+    ownerEmail = "jobs@techcorp.com",
+    jobInfo = JobInfo(
+      company = "TechCorp",
+      title = "Senior Java Developer",
+      description =
+        "Join our dynamic team as a Senior Java Developer to build scalable microservices and enterprise applications.",
+      externalUrl = "https://techcorp.com/careers/java-developer",
+      remote = true,
+      location = "Austin, TX",
+      salaryLo = None,
+      salaryHi = None,
+      currency = None,
+      country = None,
+      tags = None,
+      image = None,
+      seniority = None,
+      other = None
+    ),
+    active = false
   )
 }
