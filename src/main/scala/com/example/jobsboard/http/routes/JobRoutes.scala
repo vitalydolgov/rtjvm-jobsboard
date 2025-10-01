@@ -17,8 +17,9 @@ import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.job.*
 import com.example.jobsboard.http.responses.*
 import com.example.jobsboard.logging.syntax.*
+import com.example.jobsboard.http.validation.syntax.*
 
-class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends Http4sDsl[F] {
+class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends HttpValidationDsl[F] {
 
   private val allJobsRoute: HttpRoutes[F] = HttpRoutes.of[F] { case POST -> Root =>
     for {
@@ -36,23 +37,25 @@ class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends Http4s
 
   private val createJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ POST -> Root / "create" =>
-      for {
-        jobInfo <- req.as[JobInfo].logError(e => s"Parsing failed: $e")
-        jobId <- jobs.create("TODO@example.com", jobInfo)
-        resp <- Created(jobId)
-      } yield resp
+      req.validate[JobInfo] { jobInfo =>
+        for {
+          jobId <- jobs.create("TODO@example.com", jobInfo)
+          resp <- Created(jobId)
+        } yield resp
+      }
   }
 
   private val updateJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
     case req @ PUT -> Root / UUIDVar(id) =>
-      for {
-        jobInfo <- req.as[JobInfo]
-        jobOption <- jobs.update(id, jobInfo)
-        resp <- jobOption match {
-          case Some(_) => Ok()
-          case None    => NotFound(FailureResponse(s"Cannot update: Job $id not found."))
-        }
-      } yield resp
+      req.validate[JobInfo] { jobInfo =>
+        for {
+          jobOption <- jobs.update(id, jobInfo)
+          resp <- jobOption match {
+            case Some(_) => Ok()
+            case None    => NotFound(FailureResponse(s"Cannot update: Job $id not found."))
+          }
+        } yield resp
+      }
   }
 
   private val deleteJobRoute: HttpRoutes[F] = HttpRoutes.of[F] {
