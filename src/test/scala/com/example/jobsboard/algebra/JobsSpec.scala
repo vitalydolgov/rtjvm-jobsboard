@@ -6,8 +6,12 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import com.example.jobsboard.fixtures.*
+import com.example.jobsboard.domain.job.*
+import com.example.jobsboard.domain.pagination.*
 
 class JobsSpec
     extends AsyncFreeSpec
@@ -15,6 +19,9 @@ class JobsSpec
     with Matchers
     with DoobieSpec
     with JobFixture {
+
+  given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
+
   val initScript: String = "sql/jobs.sql"
 
   "Jobs 'algebra'" - {
@@ -114,6 +121,31 @@ class JobsSpec
       } yield deletedJobsCount
 
       program.asserting(_ shouldBe 0)
+    }
+  }
+
+  "should filter remote jobs" in {
+    transactor.use { xa =>
+      val program = for {
+        jobs <- LiveJobs[IO](xa)
+        filteredJobs <- jobs.all(JobFilter(remote = true), Pagination.default)
+      } yield filteredJobs
+
+      program.asserting(_ shouldBe List())
+    }
+  }
+
+  "should filter jobs by tags" in {
+    transactor.use { xa =>
+      val program = for {
+        jobs <- LiveJobs[IO](xa)
+        filteredJobs <- jobs.all(
+          JobFilter(tags = List("scala", "cats", "zio")),
+          Pagination.default
+        )
+      } yield filteredJobs
+
+      program.asserting(_ shouldBe List(ScalaDeveloperACME))
     }
   }
 }

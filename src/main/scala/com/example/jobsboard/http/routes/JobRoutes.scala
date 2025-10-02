@@ -1,7 +1,7 @@
 package com.example.jobsboard.http.routes
 
 import cats.implicits.*
-import cats.effect.Concurrent
+import cats.effect.*
 import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.dsl.*
@@ -18,14 +18,20 @@ import com.example.jobsboard.domain.job.*
 import com.example.jobsboard.http.responses.*
 import com.example.jobsboard.logging.syntax.*
 import com.example.jobsboard.http.validation.syntax.*
+import com.example.jobsboard.domain.pagination.*
 
 class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F]) extends HttpValidationDsl[F] {
 
-  private val allJobsRoute: HttpRoutes[F] = HttpRoutes.of[F] { case POST -> Root =>
-    for {
-      jobsList <- jobs.all()
-      resp <- Ok(jobsList)
-    } yield resp
+  object OffsetQueryParam extends OptionalQueryParamDecoderMatcher[Int]("offset")
+  object LimitQueryParam extends OptionalQueryParamDecoderMatcher[Int]("limit")
+
+  private val allJobsRoute: HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ POST -> Root :? LimitQueryParam(limit) +& OffsetQueryParam(offset) =>
+      for {
+        filter <- req.as[JobFilter]
+        jobsList <- jobs.all(filter, Pagination(limit, offset))
+        resp <- Ok(jobsList)
+      } yield resp
   }
 
   private val findJobRoute: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / UUIDVar(id) =>

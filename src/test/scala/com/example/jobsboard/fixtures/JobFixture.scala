@@ -18,13 +18,13 @@ trait JobFixture {
       description =
         "We are looking for a skilled Scala developer to join our team and work on high-performance distributed systems.",
       externalUrl = "https://acme.com/careers/scala-developer",
-      remote = true,
+      remote = false,
       location = "San Francisco, CA",
       salaryLo = None,
       salaryHi = None,
       currency = None,
       country = None,
-      tags = None,
+      tags = Some(List("scala", "cats")),
       image = None,
       seniority = None,
       other = None
@@ -48,7 +48,7 @@ trait JobFixture {
       salaryHi = None,
       currency = None,
       country = None,
-      tags = None,
+      tags = Some(List("scala", "cats")),
       image = None,
       seniority = None,
       other = None

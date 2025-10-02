@@ -49,13 +49,13 @@ INSERT INTO jobs (
     'Senior Scala Developer', -- title
     'We are looking for a skilled Scala developer to join our team and work on high-performance distributed systems.', -- description
     'https://acme.com/careers/scala-developer', -- externalUrl
-    true, -- remote
+    false, -- remote
     'San Francisco, CA', -- location
     NULL, -- salaryLo
     NULL, -- salaryHi
     NULL, -- currency
     NULL, -- country
-    NULL, -- tags
+    ARRAY['scala', 'cats'], -- tags
     NULL, -- image
     NULL, -- seniority
     NULL, -- other

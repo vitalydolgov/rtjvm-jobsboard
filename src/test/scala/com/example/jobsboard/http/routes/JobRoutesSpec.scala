@@ -16,6 +16,7 @@ import org.scalatest.matchers.should.Matchers
 
 import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.job.*
+import com.example.jobsboard.domain.pagination.*
 import com.example.jobsboard.fixtures.JobFixture
 import com.example.jobsboard.http.routes.JobRoutes
 
@@ -30,6 +31,10 @@ class JobRoutesSpec
     override def create(ownerEmail: String, jobInfo: JobInfo): IO[UUID] = IO.pure(NewJobUuid)
 
     override def all(): IO[List[Job]] = IO.pure(List(ScalaDeveloperACME))
+
+    override def all(filter: JobFilter, pagination: Pagination): IO[List[Job]] =
+      if (filter.remote) IO.pure(List())
+      else IO.pure(List(ScalaDeveloperACME))
 
     override def find(id: UUID): IO[Option[Job]] =
       if (id == ScalaDeveloperACME.id)
@@ -71,11 +76,25 @@ class JobRoutesSpec
       for {
         response <- jobRoutes.orNotFound.run(
           Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter())
         )
         retrieved <- response.as[List[Job]]
       } yield {
         response.status shouldBe Status.Ok
         retrieved shouldBe List(ScalaDeveloperACME)
+      }
+    }
+
+    "should return all jobs that satisfy a filter" in {
+      for {
+        response <- jobRoutes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter(remote = true))
+        )
+        retrieved <- response.as[List[Job]]
+      } yield {
+        response.status shouldBe Status.Ok
+        retrieved shouldBe List()
       }
     }
 
