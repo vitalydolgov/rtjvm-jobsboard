@@ -38,7 +38,7 @@ class JobsSpec
   }
 
   "Jobs 'algebra'" - {
-    "should retrieve job by UD" in {
+    "should retrieve job by ID" in {
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
@@ -83,7 +83,7 @@ class JobsSpec
       }
     }
 
-    "should return None when updating non-existent job" in {
+    "should return None when updating a non-existent job" in {
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
@@ -113,7 +113,7 @@ class JobsSpec
     }
   }
 
-  "should return zero when deleting non-existent job" in {
+  "should return zero when deleting a non-existent job" in {
     transactor.use { xa =>
       val program = for {
         jobs <- LiveJobs[IO](xa)
