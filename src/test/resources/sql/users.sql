@@ -19,7 +19,7 @@ INSERT INTO users (
     role
 ) VALUES (
     'admin@example.com',
-    '$dummyhashedpassword',
+    '$2a$10$MFtXdkP2q/wDZOBexuF8HuFYMiksRTwHnCDlmcVNvBAflhqqpsYR6', -- passw0rd
     'Admin',
     NULL,
     'Example.com',
@@ -35,7 +35,7 @@ INSERT INTO users (
     role
 ) VALUES (
     'john@acme.com',
-    '$dummyhashedpassword',
+    '$2a$10$XkJYIQhimMez7QamoFdvSOvYLtz8fQlEbQp673OvDlOw9395W08mu', -- password
     'John',
     'Smith',
     'ACME Inc',
