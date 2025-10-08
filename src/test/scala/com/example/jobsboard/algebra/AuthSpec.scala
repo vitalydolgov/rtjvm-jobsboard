@@ -78,7 +78,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFi
     "signing up should not create a user with existing email" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers, mockedAuthenticator)
-        userOpt <- auth.signUp(NewUserInfo(John.email, "password", None, None, None))
+        userOpt <- auth.signUp(NewUserPayload(John.email, "password", None, None, None))
       } yield userOpt
 
       program.asserting(_ shouldBe None)
@@ -88,7 +88,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFi
       val program = for {
         auth <- LiveAuth[IO](mockedUsers, mockedAuthenticator)
         userOpt <- auth.signUp(
-          NewUserInfo("bob@acme.com", "password", Some("Bob"), Some("Jones"), Some("ACME Inc"))
+          NewUserPayload("bob@acme.com", "password", Some("Bob"), Some("Jones"), Some("ACME Inc"))
         )
       } yield userOpt
 
@@ -106,7 +106,10 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFi
     "changing password should return Right(None) if the user doesn't exist" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers, mockedAuthenticator)
-        result <- auth.changePassword(InvalidEmail, NewPasswordInfo("oldpassword", "newpassword"))
+        result <- auth.changePassword(
+          InvalidEmail,
+          NewPasswordPayload("oldpassword", "newpassword")
+        )
       } yield result
 
       program.asserting(_ shouldBe Right(None))
@@ -115,7 +118,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFi
     "changing password should return Left with an error if the password is incorrect" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers, mockedAuthenticator)
-        result <- auth.changePassword(John.email, NewPasswordInfo("oldpassword", "newpassword"))
+        result <- auth.changePassword(John.email, NewPasswordPayload("oldpassword", "newpassword"))
       } yield result
 
       program.asserting(_ shouldBe Left("Invalid password"))
@@ -124,7 +127,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFi
     "changing password should succeed" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers, mockedAuthenticator)
-        result <- auth.changePassword(John.email, NewPasswordInfo("password", "newpassword"))
+        result <- auth.changePassword(John.email, NewPasswordPayload("password", "newpassword"))
         isCorrectPassword <- result match {
           case Right(Some(user)) =>
             BCrypt.checkpwBool[IO](

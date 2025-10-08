@@ -1,12 +1,12 @@
 package com.example.jobsboard.domain
 
 object auth {
-  case class LoginInfo(
+  case class LoginPayload(
       email: String,
       password: String
   )
 
-  case class NewPasswordInfo(
+  case class NewPasswordPayload(
       oldPassword: String,
       newPassword: String
   )

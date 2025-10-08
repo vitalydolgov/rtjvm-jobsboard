@@ -12,7 +12,7 @@ object user {
       role: Role
   )
 
-  final case class NewUserInfo(
+  final case class NewUserPayload(
       email: String,
       password: String,
       firstName: Option[String],

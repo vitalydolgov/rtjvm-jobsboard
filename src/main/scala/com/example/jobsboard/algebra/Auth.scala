@@ -12,10 +12,10 @@ import com.example.jobsboard.domain.user.*
 
 trait Auth[F[_]] {
   def login(email: String, password: String): F[Option[JwtToken]]
-  def signUp(newUserInfo: NewUserInfo): F[Option[User]]
+  def signUp(payload: NewUserPayload): F[Option[User]]
   def changePassword(
       email: String,
-      newPasswordInfo: NewPasswordInfo
+      payload: NewPasswordPayload
   ): F[Either[String, Option[User]]]
 }
 
@@ -35,18 +35,18 @@ class LiveAuth[F[_]: Async: Logger] private (
       jwtTokenOpt <- validatedUserOpt.traverse(user => authenticator.create(user.email))
     } yield jwtTokenOpt
 
-  def signUp(newUserInfo: NewUserInfo): F[Option[User]] =
-    users.find(newUserInfo.email).flatMap {
+  def signUp(payload: NewUserPayload): F[Option[User]] =
+    users.find(payload.email).flatMap {
       case Some(_) => None.pure[F]
       case None =>
         for {
-          hashedPassword <- BCrypt.hashpw[F](newUserInfo.password)
+          hashedPassword <- BCrypt.hashpw[F](payload.password)
           user <- User(
-            newUserInfo.email,
+            payload.email,
             hashedPassword,
-            newUserInfo.firstName,
-            newUserInfo.lastName,
-            newUserInfo.company,
+            payload.firstName,
+            payload.lastName,
+            payload.company,
             Role.RECRUITER
           ).pure[F]
           _ <- users.create(user)
@@ -55,7 +55,7 @@ class LiveAuth[F[_]: Async: Logger] private (
 
   def changePassword(
       email: String,
-      newPasswordInfo: NewPasswordInfo
+      payload: NewPasswordPayload
   ): F[Either[String, Option[User]]] = {
     def updateUser(user: User, newPassword: String) = for {
       hashedNewPassword <- BCrypt.hashpw[F](newPassword)
@@ -77,7 +77,7 @@ class LiveAuth[F[_]: Async: Logger] private (
     users.find(email).flatMap {
       case None => Right(None).pure[F]
       case Some(user) =>
-        val NewPasswordInfo(oldPassword, newPassword) = newPasswordInfo
+        val NewPasswordPayload(oldPassword, newPassword) = payload
         checkAndUpdate(user, oldPassword, newPassword)
     }
   }
