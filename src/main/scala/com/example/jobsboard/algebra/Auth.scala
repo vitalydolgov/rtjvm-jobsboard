@@ -11,6 +11,7 @@ import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.domain.user.*
 
 trait Auth[F[_]] {
+  def authenticator: Authenticator[F]
   def login(email: String, password: String): F[Option[JwtToken]]
   def signUp(payload: NewUserPayload): F[Option[User]]
   def changePassword(
@@ -21,7 +22,7 @@ trait Auth[F[_]] {
 
 class LiveAuth[F[_]: Async: Logger] private (
     users: Users[F],
-    authenticator: Authenticator[F]
+    override val authenticator: Authenticator[F]
 ) extends Auth[F] {
   def login(email: String, password: String): F[Option[JwtToken]] =
     for {

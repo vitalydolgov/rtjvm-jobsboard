@@ -18,7 +18,7 @@ import com.example.jobsboard.domain.auth.*
 import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.fixtures.*
 
-class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UsersFixture {
+class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFixture {
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   private val mockedUsers: Users[IO] = new Users[IO] {
