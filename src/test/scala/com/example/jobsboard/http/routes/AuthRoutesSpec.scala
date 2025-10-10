@@ -68,6 +68,8 @@ class AuthRoutesSpec
       else
         Right(None).pure[IO]
 
+    override def delete(email: String): IO[Boolean] = true.pure[IO]
+
   }
 
   private val mockedAuthenticator: Authenticator[IO] = {
@@ -212,5 +214,30 @@ class AuthRoutesSpec
         response.status shouldBe Status.Ok
       }
     }
+
+    "should return 401 Unauthorized if non-admin tries to delete a user" in {
+      for {
+        jwtToken <- mockedAuthenticator.create(johnEmail)
+        response <- authRoutes.orNotFound.run(
+          Request(method = Method.DELETE, uri = uri"/auth/users/admin@example.com")
+            .withBearerToken(jwtToken)
+        )
+      } yield {
+        response.status shouldBe Status.Unauthorized
+      }
+    }
+
+    "should return 200 OK if admin tries to delete a user" in {
+      for {
+        jwtToken <- mockedAuthenticator.create(adminEmail)
+        response <- authRoutes.orNotFound.run(
+          Request(method = Method.DELETE, uri = uri"/auth/users/admin@example.com")
+            .withBearerToken(jwtToken)
+        )
+      } yield {
+        response.status shouldBe Status.Ok
+      }
+    }
+
   }
 }
