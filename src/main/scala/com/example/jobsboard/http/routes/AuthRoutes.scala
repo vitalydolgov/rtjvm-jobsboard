@@ -9,6 +9,8 @@ import org.http4s.circe.CirceEntityCodec.*
 import tsec.authentication.{SecuredRequestHandler, asAuthed, TSecAuthService}
 import org.typelevel.log4cats.Logger
 
+import scala.language.implicitConversions
+
 import com.example.jobsboard.algebra.*
 import com.example.jobsboard.http.validation.syntax.*
 import com.example.jobsboard.domain.auth.*
@@ -70,9 +72,21 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
     } yield resp
   }
 
+  private val deleteUserRoute: AuthRoute[F] = {
+    case req @ DELETE -> Root / "users" / email asAuthed _ =>
+      auth.delete(email).flatMap {
+        case true  => Ok()
+        case false => NotFound()
+      }
+  }
+
   private val unauthedRoutes = loginRoute <+> createUserRoute
   private val authedRoutes =
-    securedHandler.liftService(TSecAuthService(changePasswordRoute.orElse(logoutRoute)))
+    securedHandler.liftService(
+      changePasswordRoute.restrictedTo(allRoles) |+|
+        logoutRoute.restrictedTo(allRoles) |+|
+        deleteUserRoute.restrictedTo(adminOnly)
+    )
 
   val routes = Router(
     "/auth" -> (unauthedRoutes <+> authedRoutes)
