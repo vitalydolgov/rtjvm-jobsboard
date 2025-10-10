@@ -4,19 +4,23 @@ import cats.*
 import cats.implicits.*
 import cats.data.*
 import cats.data.Validated.*
-
-import com.example.jobsboard.domain.job.*
 import org.http4s.Uri
 import java.net.URL
 import scala.util.Try
 import scala.util.Success
 import scala.util.Failure
 
+import com.example.jobsboard.domain.job.*
+import com.example.jobsboard.domain.auth.*
+import com.example.jobsboard.domain.user.*
+
 object validators {
   sealed trait ValidationFalure(val errorMessage: String)
   case class EmptyField(fieldName: String) extends ValidationFalure(s"'$fieldName' is required")
   case class InvalidUrl(fieldName: String)
       extends ValidationFalure(s"'$fieldName' is an invalid URL")
+  case class InvalidEmail(fieldName: String)
+      extends ValidationFalure(s"'$fieldName' is an invalid email")
 
   type ValidationResult[A] = ValidatedNel[ValidationFalure, A]
 
@@ -77,4 +81,47 @@ object validators {
       other.validNel
     ).mapN(JobInfo.apply)
   }
+
+  val emailRegex =
+    """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+
+  def validateEmail(value: String, fieldName: String): ValidationResult[String] =
+    if (emailRegex.findFirstMatchIn(value).isDefined) value.validNel
+    else InvalidEmail(value).invalidNel
+
+  given loginPayloadValidator: Validator[LoginPayload] = (payload: LoginPayload) => {
+    val validEmail = validateRequired(payload.email, "email")(_.nonEmpty)
+      .andThen(e => validateEmail(e, "email"))
+    val validPassword = validateRequired(payload.password, "password")(_.nonEmpty)
+
+    (
+      validEmail,
+      validPassword
+    ).mapN(LoginPayload.apply)
+  }
+
+  given newUserPayloadValidator: Validator[NewUserPayload] = (payload: NewUserPayload) => {
+    val validEmail = validateRequired(payload.email, "email")(_.nonEmpty)
+      .andThen(e => validateEmail(e, "email"))
+    val validPassword = validateRequired(payload.password, "password")(_.nonEmpty)
+
+    (
+      validEmail,
+      validPassword,
+      payload.firstName.validNel,
+      payload.lastName.validNel,
+      payload.company.validNel
+    ).mapN(NewUserPayload.apply)
+  }
+
+  given newPasswordPayloadValidator: Validator[NewPasswordPayload] =
+    (payload: NewPasswordPayload) => {
+      val validOldPassword = validateRequired(payload.oldPassword, "oldPassword")(_.nonEmpty)
+      val validNewPassword = validateRequired(payload.newPassword, "newPassword")(_.nonEmpty)
+
+      (
+        validOldPassword,
+        validNewPassword
+      ).mapN(NewPasswordPayload.apply)
+    }
 }
