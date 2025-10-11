@@ -21,8 +21,7 @@ import com.example.jobsboard.http.responses.*
 class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpValidationDsl[F] {
   private val authenticator = auth.authenticator
 
-  private val securedHandler: SecuredRequestHandler[F, String, User, JwtToken] =
-    SecuredRequestHandler(authenticator)
+  private val securedHandler: SecuredHandler[F] = SecuredRequestHandler(authenticator)
 
   private val loginRoute: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     req.validate[LoginPayload] { payload =>

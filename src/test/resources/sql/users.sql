@@ -34,10 +34,10 @@ INSERT INTO users (
     company,
     role
 ) VALUES (
-    'john@acme.com',
+    'jobs@encom.io',
     '$2a$10$XkJYIQhimMez7QamoFdvSOvYLtz8fQlEbQp673OvDlOw9395W08mu', -- password
     'John',
     'Smith',
-    'ACME Inc',
+    'ENCOM',
     'RECRUITER'
 );

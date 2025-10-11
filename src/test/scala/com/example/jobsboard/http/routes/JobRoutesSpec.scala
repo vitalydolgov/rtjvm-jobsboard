@@ -17,39 +17,40 @@ import org.scalatest.matchers.should.Matchers
 import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.job.*
 import com.example.jobsboard.domain.pagination.*
-import com.example.jobsboard.fixtures.JobFixture
-import com.example.jobsboard.http.routes.JobRoutes
+import com.example.jobsboard.fixtures.*
+import com.example.jobsboard.http.routes.*
 
 class JobRoutesSpec
     extends AsyncFreeSpec
     with AsyncIOSpec
     with Matchers
     with Http4sDsl[IO]
-    with JobFixture {
+    with JobFixture
+    with SecuredRouteFixture {
 
   val jobs: Jobs[IO] = new Jobs[IO] {
     override def create(ownerEmail: String, jobInfo: JobInfo): IO[UUID] = IO.pure(NewJobUuid)
 
-    override def all(): IO[List[Job]] = IO.pure(List(ScalaDeveloperACME))
+    override def all(): IO[List[Job]] = IO.pure(List(ScalaDeveloperENCOM))
 
     override def all(filter: JobFilter, pagination: Pagination): IO[List[Job]] =
       if (filter.remote) IO.pure(List())
-      else IO.pure(List(ScalaDeveloperACME))
+      else IO.pure(List(ScalaDeveloperENCOM))
 
     override def find(id: UUID): IO[Option[Job]] =
-      if (id == ScalaDeveloperACME.id)
-        IO.pure(Some(ScalaDeveloperACME))
+      if (id == ScalaDeveloperENCOM.id)
+        IO.pure(Some(ScalaDeveloperENCOM))
       else
         IO.pure(None)
 
     override def update(id: UUID, jobInfo: JobInfo): IO[Option[Job]] =
-      if (id == ScalaDeveloperACME.id)
-        IO.pure(Some(ScalaDeveloperACMEUpdated))
+      if (id == ScalaDeveloperENCOM.id)
+        IO.pure(Some(ScalaDeveloperENCOMUpdated))
       else
         IO.pure(None)
 
     override def delete(id: UUID): IO[Int] =
-      if (id == ScalaDeveloperACME.id)
+      if (id == ScalaDeveloperENCOM.id)
         IO.pure(1)
       else
         IO.pure(0)
@@ -57,18 +58,18 @@ class JobRoutesSpec
 
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
-  val jobRoutes: HttpRoutes[IO] = JobRoutes[IO](jobs).routes
+  val jobRoutes: HttpRoutes[IO] = JobRoutes[IO](jobs, mockedAuthenticator).routes
 
   "JobRoutes" - {
     "should return a job with a given ID" in {
       for {
         response <- jobRoutes.orNotFound.run(
-          Request(method = Method.GET, uri = uri"/jobs" / ScalaDeveloperACME.id.toString)
+          Request(method = Method.GET, uri = uri"/jobs" / ScalaDeveloperENCOM.id.toString)
         )
         retrieved <- response.as[Job]
       } yield {
         response.status shouldBe Status.Ok
-        retrieved shouldBe ScalaDeveloperACME
+        retrieved shouldBe ScalaDeveloperENCOM
       }
     }
 
@@ -81,7 +82,7 @@ class JobRoutesSpec
         retrieved <- response.as[List[Job]]
       } yield {
         response.status shouldBe Status.Ok
-        retrieved shouldBe List(ScalaDeveloperACME)
+        retrieved shouldBe List(ScalaDeveloperENCOM)
       }
     }
 
@@ -100,9 +101,11 @@ class JobRoutesSpec
 
     "should create a new job" in {
       for {
+        jwtToken <- mockedAuthenticator.create(adminEmail)
         response <- jobRoutes.orNotFound.run(
           Request(method = Method.POST, uri = uri"/jobs/create")
-            .withEntity(ScalaDeveloperACME.jobInfo)
+            .withBearerToken(jwtToken)
+            .withEntity(ScalaDeveloperENCOM.jobInfo)
         )
         createdJobId <- response.as[UUID]
       } yield {
@@ -113,13 +116,16 @@ class JobRoutesSpec
 
     "should only update a job that exists" in {
       for {
+        jwtToken <- mockedAuthenticator.create(johnEmail)
         response <- jobRoutes.orNotFound.run(
-          Request(method = Method.PUT, uri = uri"/jobs" / ScalaDeveloperACME.id.toString)
-            .withEntity(ScalaDeveloperACMEUpdated.jobInfo)
+          Request(method = Method.PUT, uri = uri"/jobs" / ScalaDeveloperENCOM.id.toString)
+            .withBearerToken(jwtToken)
+            .withEntity(ScalaDeveloperENCOMUpdated.jobInfo)
         )
         responseInvalid <- jobRoutes.orNotFound.run(
           Request(method = Method.PUT, uri = uri"/jobs" / InvalidJobUuid.toString)
-            .withEntity(ScalaDeveloperACMEUpdated.jobInfo)
+            .withBearerToken(jwtToken)
+            .withEntity(ScalaDeveloperENCOMUpdated.jobInfo)
         )
       } yield {
         response.status shouldBe Status.Ok
@@ -127,13 +133,29 @@ class JobRoutesSpec
       }
     }
 
+    "should forbid the update of a job that the user doesn't own" in {
+      for {
+        jwtToken <- mockedAuthenticator.create(annaEmail)
+        response <- jobRoutes.orNotFound.run(
+          Request(method = Method.PUT, uri = uri"/jobs" / ScalaDeveloperENCOM.id.toString)
+            .withBearerToken(jwtToken)
+            .withEntity(ScalaDeveloperENCOMUpdated.jobInfo)
+        )
+      } yield {
+        response.status shouldBe Status.Unauthorized
+      }
+    }
+
     "should only delete a job that exists" in {
       for {
+        jwtToken <- mockedAuthenticator.create(adminEmail)
         response <- jobRoutes.orNotFound.run(
-          Request(method = Method.DELETE, uri = uri"/jobs" / ScalaDeveloperACME.id.toString)
+          Request(method = Method.DELETE, uri = uri"/jobs" / ScalaDeveloperENCOM.id.toString)
+            .withBearerToken(jwtToken)
         )
         responseInvalid <- jobRoutes.orNotFound.run(
           Request(method = Method.DELETE, uri = uri"/jobs" / InvalidJobUuid.toString)
+            .withBearerToken(jwtToken)
         )
       } yield {
         response.status shouldBe Status.Ok

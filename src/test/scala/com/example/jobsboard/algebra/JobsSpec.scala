@@ -42,10 +42,10 @@ class JobsSpec
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
-          retrieved <- jobs.find(ScalaDeveloperACME.id)
+          retrieved <- jobs.find(ScalaDeveloperENCOM.id)
         } yield retrieved
 
-        program.asserting(_ shouldBe Some(ScalaDeveloperACME))
+        program.asserting(_ shouldBe Some(ScalaDeveloperENCOM))
       }
     }
 
@@ -56,7 +56,7 @@ class JobsSpec
           retrieved <- jobs.all()
         } yield retrieved
 
-        program.asserting(_ shouldBe List(ScalaDeveloperACME))
+        program.asserting(_ shouldBe List(ScalaDeveloperENCOM))
       }
     }
 
@@ -64,11 +64,11 @@ class JobsSpec
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
-          jobId <- jobs.create("jobs@techcorp.com", JavaDeveloperTechCorp.jobInfo)
+          jobId <- jobs.create("jobs@dillingersystems.io", ScalaDeveloperDillingerSystems.jobInfo)
           job <- jobs.find(jobId)
         } yield job
 
-        program.asserting(_.map(_.jobInfo) shouldBe Some(JavaDeveloperTechCorp.jobInfo))
+        program.asserting(_.map(_.jobInfo) shouldBe Some(ScalaDeveloperDillingerSystems.jobInfo))
       }
     }
 
@@ -76,10 +76,10 @@ class JobsSpec
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
-          jobOpt <- jobs.update(ScalaDeveloperACME.id, ScalaDeveloperACMEUpdated.jobInfo)
+          jobOpt <- jobs.update(ScalaDeveloperENCOM.id, ScalaDeveloperENCOMUpdated.jobInfo)
         } yield jobOpt
 
-        program.asserting(_ shouldBe Some(ScalaDeveloperACMEUpdated))
+        program.asserting(_ shouldBe Some(ScalaDeveloperENCOMUpdated))
       }
     }
 
@@ -87,7 +87,7 @@ class JobsSpec
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
-          jobOpt <- jobs.update(InvalidJobUuid, ScalaDeveloperACMEUpdated.jobInfo)
+          jobOpt <- jobs.update(InvalidJobUuid, ScalaDeveloperENCOMUpdated.jobInfo)
         } yield jobOpt
 
         program.asserting(_ shouldBe None)
@@ -99,8 +99,8 @@ class JobsSpec
     transactor.use { xa =>
       val program = for {
         jobs <- LiveJobs[IO](xa)
-        deletedJobsCount <- jobs.delete(ScalaDeveloperACME.id)
-        jobsCount <- sql"SELECT COUNT(*) FROM jobs WHERE id = ${ScalaDeveloperACME.id}"
+        deletedJobsCount <- jobs.delete(ScalaDeveloperENCOM.id)
+        jobsCount <- sql"SELECT COUNT(*) FROM jobs WHERE id = ${ScalaDeveloperENCOM.id}"
           .query[Int]
           .unique
           .transact(xa)
@@ -145,7 +145,7 @@ class JobsSpec
         )
       } yield filteredJobs
 
-      program.asserting(_ shouldBe List(ScalaDeveloperACME))
+      program.asserting(_ shouldBe List(ScalaDeveloperENCOM))
     }
   }
 }

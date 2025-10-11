@@ -8,16 +8,16 @@ trait JobFixture {
 
   val InvalidJobUuid = UUID.fromString("22e1971e-78ec-4669-baca-42953d93cec5")
 
-  val ScalaDeveloperACME = Job(
+  val ScalaDeveloperENCOM = Job(
     id = UUID.fromString("9283f9f6-65eb-4791-a92c-be32dba0a484"),
     date = 1735689600000L,
-    ownerEmail = "hr@acme.com",
+    ownerEmail = "jobs@encom.io",
     jobInfo = JobInfo(
-      company = "ACME Corp",
+      company = "ENCOM",
       title = "Senior Scala Developer",
       description =
         "We are looking for a skilled Scala developer to join our team and work on high-performance distributed systems.",
-      externalUrl = "https://acme.com/careers/scala-developer",
+      externalUrl = "https://encom.io/careers/scala-developer",
       remote = false,
       location = "San Francisco, CA",
       salaryLo = None,
@@ -32,16 +32,16 @@ trait JobFixture {
     active = false
   )
 
-  val ScalaDeveloperACMEUpdated = Job(
+  val ScalaDeveloperENCOMUpdated = Job(
     id = UUID.fromString("9283f9f6-65eb-4791-a92c-be32dba0a484"),
     date = 1735689600000L,
-    ownerEmail = "hr@acme.com",
+    ownerEmail = "jobs@encom.io",
     jobInfo = JobInfo(
-      company = "ACME Corp",
+      company = "ENCOM",
       title = "Lead Scala Developer",
       description =
         "We are looking for an experienced Scala developer to lead our team and architect high-performance distributed systems.",
-      externalUrl = "https://acme.com/careers/lead-scala-developer",
+      externalUrl = "https://encom.io/careers/lead-scala-developer",
       remote = false,
       location = "New York, NY",
       salaryLo = None,
@@ -56,23 +56,23 @@ trait JobFixture {
     active = false
   )
 
-  val JavaDeveloperTechCorp = Job(
+  val ScalaDeveloperDillingerSystems = Job(
     id = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
     date = 1735689600000L,
-    ownerEmail = "jobs@techcorp.com",
+    ownerEmail = "jobs@dillingersystems.io",
     jobInfo = JobInfo(
-      company = "TechCorp",
-      title = "Senior Java Developer",
+      company = "Dillinger Systems",
+      title = "Senior Scala Developer",
       description =
-        "Join our dynamic team as a Senior Java Developer to build scalable microservices and enterprise applications.",
-      externalUrl = "https://techcorp.com/careers/java-developer",
+        "Join our dynamic team as a Senior Scala Developer to build scalable microservices and enterprise applications.",
+      externalUrl = "https://dillingersystems.io/careers/scala-developer",
       remote = true,
       location = "Austin, TX",
       salaryLo = None,
       salaryHi = None,
       currency = None,
       country = None,
-      tags = None,
+      tags = Some(List("scala", "cats")),
       image = None,
       seniority = None,
       other = None

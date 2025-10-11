@@ -29,10 +29,10 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          userOpt <- users.find("john@acme.com")
+          userOpt <- users.find(adminEmail)
         } yield userOpt
 
-        program.asserting(_ shouldBe Some(John))
+        program.asserting(_ shouldBe Some(Admin))
       }
     }
 
@@ -40,7 +40,7 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          userOpt <- users.find("nobody@example.com")
+          userOpt <- users.find(InvalidEmail)
         } yield userOpt
 
         program.asserting(_ shouldBe None)
@@ -51,16 +51,16 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          userId <- users.create(Carol)
-          userOpt <- sql"SELECT * FROM users WHERE email = ${Carol.email}"
+          userId <- users.create(Anna)
+          userOpt <- sql"SELECT * FROM users WHERE email = ${annaEmail}"
             .query[User]
             .option
             .transact(xa)
         } yield (userId, userOpt)
 
         program.asserting { case (userId, userOpt) =>
-          userId shouldBe Carol.email
-          userOpt shouldBe Some(Carol)
+          userId shouldBe annaEmail
+          userOpt shouldBe Some(Anna)
         }
       }
     }
@@ -69,7 +69,7 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          userId <- users.create(John).attempt
+          userId <- users.create(Admin).attempt
         } yield userId
 
         program.asserting { outcome =>
@@ -96,7 +96,7 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          userOpt <- users.update(Carol)
+          userOpt <- users.update(Anna)
         } yield userOpt
 
         program.asserting(_ shouldBe None)
@@ -107,8 +107,8 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          deleted <- users.delete("john@acme.com")
-          userOpt <- sql"SELECT * FROM users WHERE email = 'john@acme.com'"
+          deleted <- users.delete(johnEmail)
+          userOpt <- sql"SELECT * FROM users WHERE email = ${johnEmail}"
             .query[User]
             .option
             .transact(xa)
@@ -125,7 +125,7 @@ class UsersSpec
       transactor.use { xa =>
         val program = for {
           users <- LiveUsers[IO](xa)
-          deleted <- users.delete("nobody@example.com")
+          deleted <- users.delete(InvalidEmail)
         } yield deleted
 
         program.asserting(_ shouldBe false)

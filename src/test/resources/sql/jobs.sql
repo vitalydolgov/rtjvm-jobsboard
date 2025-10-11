@@ -44,11 +44,11 @@ INSERT INTO jobs (
 ) VALUES (
     '9283f9f6-65eb-4791-a92c-be32dba0a484', -- id
     1735689600000, -- date
-    'hr@acme.com', -- ownerEmail
-    'ACME Corp', -- company
+    'jobs@encom.io', -- ownerEmail
+    'ENCOM', -- company
     'Senior Scala Developer', -- title
     'We are looking for a skilled Scala developer to join our team and work on high-performance distributed systems.', -- description
-    'https://acme.com/careers/scala-developer', -- externalUrl
+    'https://encom.io/careers/scala-developer', -- externalUrl
     false, -- remote
     'San Francisco, CA', -- location
     NULL, -- salaryLo

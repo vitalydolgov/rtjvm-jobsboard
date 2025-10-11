@@ -2,7 +2,7 @@ package com.example.jobsboard.domain
 
 import cats.*
 import cats.implicits.*
-import tsec.authentication.{AugmentedJWT, JWTAuthenticator, SecuredRequest, TSecAuthService}
+import tsec.authentication.*
 import tsec.authorization.{BasicRBAC, AuthorizationInfo}
 import tsec.mac.jca.HMACSHA256
 import org.http4s.{Response, Status}
@@ -14,6 +14,7 @@ object security {
   type Authenticator[F[_]] = JWTAuthenticator[F, String, User, HMACSHA256]
   type AuthRoute[F[_]] = PartialFunction[SecuredRequest[F, User, JwtToken], F[Response[F]]]
   type AuthRbac[F[_]] = BasicRBAC[F, Role, User, JwtToken]
+  type SecuredHandler[F[_]] = SecuredRequestHandler[F, String, User, JwtToken]
 
   given authRole[F[_]: Applicative]: AuthorizationInfo[F, Role, User] with {
     override def fetchInfo(user: User): F[Role] = user.role.pure[F]

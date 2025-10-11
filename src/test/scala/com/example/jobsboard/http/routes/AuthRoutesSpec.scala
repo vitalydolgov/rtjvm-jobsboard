@@ -12,6 +12,7 @@ import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.*
 import org.http4s.dsl.*
 import org.http4s.implicits.*
+import org.http4s.headers.Authorization
 import tsec.mac.jca.HMACSHA256
 import tsec.jws.mac.JWTMac
 import tsec.authentication.{IdentityStore, JWTAuthenticator}
@@ -25,16 +26,15 @@ import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.auth.*
 import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.domain.user.*
-import com.example.jobsboard.http.routes.AuthRoutes
-import com.example.jobsboard.fixtures.UserFixture
-import org.http4s.headers.Authorization
+import com.example.jobsboard.http.routes.*
+import com.example.jobsboard.fixtures.*
 
 class AuthRoutesSpec
     extends AsyncFreeSpec
     with AsyncIOSpec
     with Matchers
     with Http4sDsl[IO]
-    with UserFixture {
+    with SecuredRouteFixture {
 
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
@@ -72,30 +72,7 @@ class AuthRoutesSpec
 
   }
 
-  private val mockedAuthenticator: Authenticator[IO] = {
-    val key = HMACSHA256.unsafeGenerateKey
-
-    val identityStore: IdentityStore[IO, String, User] = (email: String) =>
-      if (email == adminEmail) OptionT.pure(Admin)
-      else if (email == johnEmail) OptionT.pure(John)
-      else OptionT.none[IO, User]
-
-    JWTAuthenticator.unbacked.inBearerToken(
-      1.day,
-      None,
-      identityStore,
-      key
-    )
-  }
-
   val authRoutes: HttpRoutes[IO] = AuthRoutes[IO](mockedAuth).routes
-
-  extension (r: Request[IO])
-    def withBearerToken(jwtToken: JwtToken): Request[IO] =
-      r.putHeaders {
-        val jwtString = JWTMac.toEncodedString[IO, HMACSHA256](jwtToken.jwt)
-        Authorization(Credentials.Token(AuthScheme.Bearer, jwtString))
-      }
 
   "AuthRoutes" - {
     "should return 401 Unauthorized if login fails" in {
@@ -238,6 +215,5 @@ class AuthRoutesSpec
         response.status shouldBe Status.Ok
       }
     }
-
   }
 }

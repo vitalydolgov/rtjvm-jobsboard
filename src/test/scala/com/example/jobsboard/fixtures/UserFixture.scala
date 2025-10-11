@@ -24,11 +24,11 @@ trait UserFixture {
   )
 
   val John = User(
-    "john@acme.com",
+    "jobs@encom.io",
     "$2a$10$XkJYIQhimMez7QamoFdvSOvYLtz8fQlEbQp673OvDlOw9395W08mu", // password
     Some("John"),
     Some("Smith"),
-    Some("ACME Inc"),
+    Some("ENCOM"),
     Role.RECRUITER
   )
 
@@ -36,11 +36,11 @@ trait UserFixture {
   val johnPassword = "password"
 
   val JohnUpdated = User(
-    "john@acme.com",
+    "jobs@encom.io",
     "$2a$10$XkJYIQhimMez7QamoFdvSOvYLtz8fQlEbQp673OvDlOw9395W08mu", // password
     Some("John"),
     Some("Baker"),
-    Some("ACME Inc"),
+    Some("ENCOM"),
     Role.RECRUITER
   )
 
@@ -49,27 +49,27 @@ trait UserFixture {
     johnPassword,
     Some("John"),
     Some("Smith"),
-    Some("ACME Inc")
+    Some("ENCOM")
   )
 
-  val Carol = User(
-    "carol@acme.com",
+  val Anna = User(
+    "jobs@dillingersystems.io",
     "$2a$10$XkJYIQhimMez7QamoFdvSOvYLtz8fQlEbQp673OvDlOw9395W08mu", // password
-    Some("Carol"),
-    Some("Adams"),
-    Some("ACME Inc"),
+    Some("Anna"),
+    Some("Brown"),
+    Some("Dillinger Systems"),
     Role.RECRUITER
   )
 
-  val carolEmail = Carol.email
-  val carolPassword = "password"
+  val annaEmail = Anna.email
+  val annaPassword = "password"
 
-  val NewCarol = NewUserPayload(
-    carolEmail,
-    carolPassword,
+  val NewAnna = NewUserPayload(
+    annaEmail,
+    annaPassword,
     Some("Carol"),
     Some("Adams"),
-    Some("ACME Inc")
+    Some("Dillinger Systems")
   )
 
   val InvalidEmail = "nobody@example.com"
