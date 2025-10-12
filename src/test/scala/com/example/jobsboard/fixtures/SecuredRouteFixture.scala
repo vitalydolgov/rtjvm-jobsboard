@@ -4,7 +4,7 @@ import cats.data.*
 import cats.effect.*
 import org.http4s.*
 import org.http4s.headers.Authorization
-import tsec.authentication.{IdentityStore, JWTAuthenticator}
+import tsec.authentication.{IdentityStore, JWTAuthenticator, SecuredRequestHandler}
 import tsec.mac.jca.HMACSHA256
 import tsec.jws.mac.JWTMac
 import scala.concurrent.duration.*
@@ -35,4 +35,6 @@ trait SecuredRouteFixture extends UserFixture {
         val jwtString = JWTMac.toEncodedString[IO, HMACSHA256](jwtToken.jwt)
         Authorization(Credentials.Token(AuthScheme.Bearer, jwtString))
       }
+
+  given SecuredHandler[IO] = SecuredRequestHandler(mockedAuthenticator)
 }

@@ -6,7 +6,7 @@ import io.circe.generic.auto.*
 import org.http4s.*
 import org.http4s.server.*
 import org.http4s.circe.CirceEntityCodec.*
-import tsec.authentication.{SecuredRequestHandler, asAuthed, TSecAuthService}
+import tsec.authentication.asAuthed
 import org.typelevel.log4cats.Logger
 
 import scala.language.implicitConversions
@@ -18,15 +18,16 @@ import com.example.jobsboard.domain.user.*
 import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.http.responses.*
 
-class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpValidationDsl[F] {
-  private val authenticator = auth.authenticator
-
-  private val securedHandler: SecuredHandler[F] = SecuredRequestHandler(authenticator)
+class AuthRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (
+    auth: Auth[F],
+    authenticator: Authenticator[F]
+) extends HttpValidationDsl[F] {
 
   private val loginRoute: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     req.validate[LoginPayload] { payload =>
       val jwtTokenOpt = for {
-        tokenOpt <- auth.login(payload.email, payload.password)
+        userOpt <- auth.login(payload.email, payload.password)
+        tokenOpt <- userOpt.traverse(user => authenticator.create(user.email))
       } yield tokenOpt
 
       jwtTokenOpt.map {
@@ -81,7 +82,7 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
 
   private val unauthedRoutes = loginRoute <+> createUserRoute
   private val authedRoutes =
-    securedHandler.liftService(
+    SecuredHandler[F].liftService(
       changePasswordRoute.restrictedTo(allRoles) |+|
         logoutRoute.restrictedTo(allRoles) |+|
         deleteUserRoute.restrictedTo(adminOnly)
@@ -93,6 +94,9 @@ class AuthRoutes[F[_]: Concurrent: Logger] private (auth: Auth[F]) extends HttpV
 }
 
 object AuthRoutes {
-  def apply[F[_]: Concurrent: Logger](auth: Auth[F]) =
-    new AuthRoutes[F](auth)
+  def apply[F[_]: Concurrent: Logger: SecuredHandler](
+      auth: Auth[F],
+      authenticator: Authenticator[F]
+  ) =
+    new AuthRoutes[F](auth, authenticator)
 }

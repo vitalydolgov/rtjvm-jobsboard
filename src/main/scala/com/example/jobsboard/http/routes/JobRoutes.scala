@@ -7,7 +7,7 @@ import org.http4s.*
 import org.http4s.dsl.*
 import org.http4s.server.*
 import org.http4s.circe.CirceEntityCodec.*
-import tsec.authentication.{SecuredRequestHandler, asAuthed}
+import tsec.authentication.asAuthed
 import org.typelevel.log4cats.Logger
 
 import java.util.UUID
@@ -23,10 +23,8 @@ import com.example.jobsboard.domain.pagination.*
 import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.domain.user.*
 
-class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F], authenticator: Authenticator[F])
+class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F])
     extends HttpValidationDsl[F] {
-
-  private val securedHandler: SecuredHandler[F] = SecuredRequestHandler(authenticator)
 
   object OffsetQueryParam extends OptionalQueryParamDecoderMatcher[Int]("offset")
   object LimitQueryParam extends OptionalQueryParamDecoderMatcher[Int]("limit")
@@ -82,7 +80,7 @@ class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F], authenticator:
   }
 
   private val unauthedRoutes = allJobsRoute <+> findJobRoute
-  private val authedRoutes = securedHandler.liftService(
+  private val authedRoutes = SecuredHandler[F].liftService(
     createJobRoute.restrictedTo(allRoles) |+|
       updateJobRoute.restrictedTo(allRoles) |+|
       deleteJobRoute.restrictedTo(allRoles)
@@ -94,6 +92,5 @@ class JobRoutes[F[_]: Concurrent: Logger] private (jobs: Jobs[F], authenticator:
 }
 
 object JobRoutes {
-  def apply[F[_]: Concurrent: Logger](jobs: Jobs[F], authenticator: Authenticator[F]) =
-    new JobRoutes[F](jobs, authenticator)
+  def apply[F[_]: Concurrent: Logger: SecuredHandler](jobs: Jobs[F]) = new JobRoutes[F](jobs)
 }

@@ -16,6 +16,10 @@ object security {
   type AuthRbac[F[_]] = BasicRBAC[F, Role, User, JwtToken]
   type SecuredHandler[F[_]] = SecuredRequestHandler[F, String, User, JwtToken]
 
+  object SecuredHandler {
+    def apply[F[_]](using handler: SecuredHandler[F]): SecuredHandler[F] = handler
+  }
+
   given authRole[F[_]: Applicative]: AuthorizationInfo[F, Role, User] with {
     override def fetchInfo(user: User): F[Role] = user.role.pure[F]
   }

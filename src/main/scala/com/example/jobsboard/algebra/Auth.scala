@@ -5,19 +5,13 @@ import cats.effect.*
 import cats.implicits.*
 import tsec.passwordhashers.jca.BCrypt
 import tsec.passwordhashers.PasswordHash
-import tsec.authentication.{IdentityStore, BackingStore, AugmentedJWT, JWTAuthenticator}
-import tsec.common.SecureRandomId
-import tsec.mac.jca.HMACSHA256
 import org.typelevel.log4cats.Logger
 
 import com.example.jobsboard.domain.auth.*
-import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.domain.user.*
-import com.example.jobsboard.config.*
 
 trait Auth[F[_]] {
-  def authenticator: Authenticator[F]
-  def login(email: String, password: String): F[Option[JwtToken]]
+  def login(email: String, password: String): F[Option[User]]
   def signUp(payload: NewUserPayload): F[Option[User]]
   def changePassword(
       email: String,
@@ -26,11 +20,8 @@ trait Auth[F[_]] {
   def delete(email: String): F[Boolean]
 }
 
-class LiveAuth[F[_]: Async: Logger] private (
-    users: Users[F],
-    override val authenticator: Authenticator[F]
-) extends Auth[F] {
-  def login(email: String, password: String): F[Option[JwtToken]] =
+class LiveAuth[F[_]: Async: Logger] private (users: Users[F]) extends Auth[F] {
+  def login(email: String, password: String): F[Option[User]] =
     for {
       userOpt <- users.find(email)
       validatedUserOpt <- userOpt.filterA(user =>
@@ -39,8 +30,7 @@ class LiveAuth[F[_]: Async: Logger] private (
           PasswordHash[BCrypt](user.hashedPassword)
         )
       )
-      jwtTokenOpt <- validatedUserOpt.traverse(user => authenticator.create(user.email))
-    } yield jwtTokenOpt
+    } yield validatedUserOpt
 
   def signUp(payload: NewUserPayload): F[Option[User]] =
     users.find(payload.email).flatMap {
@@ -93,40 +83,6 @@ class LiveAuth[F[_]: Async: Logger] private (
 }
 
 object LiveAuth {
-  def apply[F[_]: Async: Logger](
-      users: Users[F]
-  )(securityConfig: SecurityConfig): F[LiveAuth[F]] = {
-    val identityStore: IdentityStore[F, String, User] = (email: String) =>
-      OptionT(users.find(email))
-
-    val tokenStoreF = Ref.of[F, Map[SecureRandomId, JwtToken]](Map.empty).map { ref =>
-      new BackingStore[F, SecureRandomId, JwtToken] {
-        override def get(id: SecureRandomId): OptionT[F, JwtToken] =
-          OptionT(ref.get.map(_.get(id)))
-
-        override def put(elem: JwtToken): F[AugmentedJWT[HMACSHA256, String]] =
-          ref.modify(store => (store + (elem.id -> elem), elem))
-
-        override def update(v: JwtToken): F[AugmentedJWT[HMACSHA256, String]] =
-          put(v)
-
-        override def delete(id: SecureRandomId): F[Unit] =
-          ref.modify(store => (store - id, ()))
-      }
-    }
-
-    val signingKeyF = HMACSHA256.buildKey[F](securityConfig.secret.getBytes("UTF-8"))
-
-    for {
-      signingKey <- signingKeyF
-      tokenStore <- tokenStoreF
-      authenticator = JWTAuthenticator.backed.inBearerToken(
-        expiryDuration = securityConfig.jwtExpiryDuration,
-        maxIdle = None,
-        tokenStore,
-        identityStore,
-        signingKey
-      )
-    } yield new LiveAuth[F](users, authenticator)
-  }
+  def apply[F[_]: Async: Logger](users: Users[F]): F[LiveAuth[F]] =
+    new LiveAuth[F](users).pure[F]
 }

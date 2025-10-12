@@ -12,15 +12,8 @@ import org.http4s.circe.CirceEntityCodec.*
 import org.http4s.*
 import org.http4s.dsl.*
 import org.http4s.implicits.*
-import org.http4s.headers.Authorization
-import tsec.mac.jca.HMACSHA256
-import tsec.jws.mac.JWTMac
-import tsec.authentication.{IdentityStore, JWTAuthenticator}
-import tsec.passwordhashers.jca.BCrypt
-import tsec.passwordhashers.PasswordHash
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
-import scala.concurrent.duration.*
 
 import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.auth.*
@@ -39,14 +32,9 @@ class AuthRoutesSpec
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
   private val mockedAuth = new Auth[IO] {
-    override def authenticator: Authenticator[IO] = mockedAuthenticator
-
-    override def login(email: String, password: String): IO[Option[JwtToken]] =
+    override def login(email: String, password: String): IO[Option[User]] =
       if (email == adminEmail && password == adminPassword)
-        for {
-          jwtToken <- mockedAuthenticator.create(adminEmail)
-          _ <- IO.println(s"Created token: $jwtToken, jwt field: ${jwtToken.jwt}")
-        } yield Some(jwtToken)
+        Some(Admin).pure[IO]
       else
         None.pure[IO]
 
@@ -72,7 +60,7 @@ class AuthRoutesSpec
 
   }
 
-  val authRoutes: HttpRoutes[IO] = AuthRoutes[IO](mockedAuth).routes
+  val authRoutes: HttpRoutes[IO] = AuthRoutes[IO](mockedAuth, mockedAuthenticator).routes
 
   "AuthRoutes" - {
     "should return 401 Unauthorized if login fails" in {
