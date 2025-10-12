@@ -1,8 +1,21 @@
 package com.example.jobsboard.fixtures
 
+import cats.effect.*
+import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.user.*
 
 trait UserFixture {
+
+  val mockedUsers: Users[IO] = new Users[IO] {
+    override def find(email: String): IO[Option[User]] =
+      if (email == Admin.email) IO.pure(Some(Admin))
+      else IO.pure(None)
+
+    override def create(user: User): IO[String] = IO.pure(user.email)
+    override def update(user: User): IO[Option[User]] = IO.pure(Some(user))
+    override def delete(email: String): IO[Boolean] = IO.pure(true)
+  }
+
   val Admin = User(
     "admin@example.com",
     "$2a$10$MFtXdkP2q/wDZOBexuF8HuFYMiksRTwHnCDlmcVNvBAflhqqpsYR6", // passw0rd

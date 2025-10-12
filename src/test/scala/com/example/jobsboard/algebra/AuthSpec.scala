@@ -20,16 +20,6 @@ import com.example.jobsboard.config.*
 class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFixture {
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
 
-  private val mockedUsers: Users[IO] = new Users[IO] {
-    override def find(email: String): IO[Option[User]] =
-      if (email == John.email) IO.pure(Some(John))
-      else IO.pure(None)
-
-    override def create(user: User): IO[String] = IO.pure(user.email)
-    override def update(user: User): IO[Option[User]] = IO.pure(Some(user))
-    override def delete(email: String): IO[Boolean] = IO.pure(true)
-  }
-
   val mockedSecurityConfig = SecurityConfig("secret", 1.day)
 
   "Auth 'algebra'" - {
@@ -45,7 +35,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
     "login should return None if the password is wrong" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers)
-        authOpt <- auth.login(John.email, "wrongpassword")
+        authOpt <- auth.login(adminEmail, "wrongpassword")
       } yield authOpt
 
       program.asserting(_ shouldBe None)
@@ -54,7 +44,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
     "login should return token on successful authentication" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers)
-        authOpt <- auth.login(John.email, "password")
+        authOpt <- auth.login(adminEmail, adminPassword)
       } yield authOpt
 
       program.asserting(_ shouldBe defined)
@@ -63,7 +53,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
     "signing up should not create a user with existing email" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers)
-        userOpt <- auth.signUp(NewUserPayload(John.email, "password", None, None, None))
+        userOpt <- auth.signUp(NewUserPayload(adminEmail, adminPassword, None, None, None))
       } yield userOpt
 
       program.asserting(_ shouldBe None)
@@ -103,7 +93,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
     "changing password should return Left with an error if the password is incorrect" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers)
-        result <- auth.changePassword(John.email, NewPasswordPayload("oldpassword", "newpassword"))
+        result <- auth.changePassword(adminEmail, NewPasswordPayload("oldpassword", "newpassword"))
       } yield result
 
       program.asserting(_ shouldBe Left("Invalid password"))
@@ -112,7 +102,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
     "changing password should succeed" in {
       val program = for {
         auth <- LiveAuth[IO](mockedUsers)
-        result <- auth.changePassword(John.email, NewPasswordPayload("password", "newpassword"))
+        result <- auth.changePassword(adminEmail, NewPasswordPayload(adminPassword, "newpassword"))
         isCorrectPassword <- result match {
           case Right(Some(user)) =>
             BCrypt.checkpwBool[IO](
