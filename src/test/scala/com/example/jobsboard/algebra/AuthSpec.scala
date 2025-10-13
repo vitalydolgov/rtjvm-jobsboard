@@ -22,10 +22,35 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
   val mockedSecurityConfig = SecurityConfig("secret", 1.day)
 
+  val mockedTokens: Tokens[IO] = new Tokens[IO] {
+    override def getToken(email: String): IO[Option[String]] =
+      if (email == adminEmail) IO.pure(Some("ABCDEFGH"))
+      else IO.pure(None)
+
+    override def checkToken(email: String, token: String): IO[Boolean] =
+      IO.pure(email == adminEmail && token == "ABCDEFGH")
+  }
+
+  val mockedEmails: Emails[IO] = new Emails[IO] {
+    override def sendEmail(to: String, subject: String, content: String): IO[Unit] =
+      IO.unit
+
+    override def sendPasswordRecoveryEmail(to: String, token: String): IO[Unit] =
+      IO.unit
+  }
+
+  private def probedEmails(users: Ref[IO, Set[String]]): Emails[IO] = new Emails[IO] {
+    override def sendEmail(to: String, subject: String, content: String): IO[Unit] =
+      users.modify(set => (set + to, ()))
+
+    override def sendPasswordRecoveryEmail(to: String, token: String): IO[Unit] =
+      sendEmail(to, "Your recovery token", "ABCDEFGH")
+  }
+
   "Auth 'algebra'" - {
     "login should return None if the user doesn't exist" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         authOpt <- auth.login(InvalidEmail, "password")
       } yield authOpt
 
@@ -34,7 +59,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "login should return None if the password is wrong" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         authOpt <- auth.login(adminEmail, "wrongpassword")
       } yield authOpt
 
@@ -43,7 +68,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "login should return token on successful authentication" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         authOpt <- auth.login(adminEmail, adminPassword)
       } yield authOpt
 
@@ -52,7 +77,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "signing up should not create a user with existing email" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         userOpt <- auth.signUp(NewUserPayload(adminEmail, adminPassword, None, None, None))
       } yield userOpt
 
@@ -61,7 +86,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "signing up should create a new user" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         userOpt <- auth.signUp(
           NewUserPayload("bob@acme.com", "password", Some("Bob"), Some("Jones"), Some("ACME Inc"))
         )
@@ -80,7 +105,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "changing password should return Right(None) if the user doesn't exist" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         result <- auth.changePassword(
           InvalidEmail,
           NewPasswordPayload("oldpassword", "newpassword")
@@ -92,7 +117,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "changing password should return Left with an error if the password is incorrect" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         result <- auth.changePassword(adminEmail, NewPasswordPayload("oldpassword", "newpassword"))
       } yield result
 
@@ -101,7 +126,7 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
 
     "changing password should succeed" in {
       val program = for {
-        auth <- LiveAuth[IO](mockedUsers)
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
         result <- auth.changePassword(adminEmail, NewPasswordPayload(adminPassword, "newpassword"))
         isCorrectPassword <- result match {
           case Right(Some(user)) =>
@@ -114,6 +139,61 @@ class AuthSpec extends AsyncFreeSpec with AsyncIOSpec with Matchers with UserFix
       } yield isCorrectPassword
 
       program.asserting(_ shouldBe true)
+    }
+
+    "recover password should fail for a non-existent user" in {
+      val program = for {
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
+        resultValidToken <- auth.recoverPassword(InvalidEmail, "ABCDEFGH", "newpassword")
+        resultInvalidToken <- auth.recoverPassword(InvalidEmail, "INVALID", "newpassword")
+      } yield (resultValidToken, resultInvalidToken)
+
+      program.asserting { case (resultValidToken, resultInvalidToken) =>
+        resultValidToken shouldBe false
+        resultInvalidToken shouldBe false
+      }
+    }
+
+    "recover password should fail if the user exists but the token is wrong" in {
+      val program = for {
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
+        result <- auth.recoverPassword(adminEmail, "INVALID", "newpassword")
+      } yield result
+
+      program.asserting(_ shouldBe false)
+    }
+
+    "recover password should succeed for the correct combination of user and token" in {
+      val program = for {
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, mockedEmails)
+        result <- auth.recoverPassword(adminEmail, "ABCDEFGH", "newpassword")
+      } yield result
+
+      program.asserting(_ shouldBe true)
+    }
+
+    "sending recovery password should fail for a non-existent user" in {
+      val program = for {
+        set <- Ref.of[IO, Set[String]](Set())
+        emails <- IO(probedEmails(set))
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, emails)
+        result <- auth.sendPasswordRecoveryToken(InvalidEmail)
+        usersBeingSentEmails <- set.get
+      } yield usersBeingSentEmails
+
+      program.asserting(_ shouldBe empty)
+    }
+
+    "sending recovery password should succeed for user that exists" in {
+      val program = for {
+        set <- Ref.of[IO, Set[String]](Set())
+        emails <- IO(probedEmails(set))
+        auth <- LiveAuth[IO](mockedUsers, mockedTokens, emails)
+        result <- auth.sendPasswordRecoveryToken(adminEmail)
+        usersBeingSentEmails <- set.get
+      } yield usersBeingSentEmails
+
+      program.asserting(_ should contain(adminEmail))
     }
   }
 }

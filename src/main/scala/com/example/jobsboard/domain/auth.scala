@@ -10,4 +10,12 @@ object auth {
       oldPassword: String,
       newPassword: String
   )
+
+  case class ForgotPasswordPayload(email: String)
+
+  case class RecoverPasswordPayload(
+      email: String,
+      token: String,
+      newPassword: String
+  )
 }

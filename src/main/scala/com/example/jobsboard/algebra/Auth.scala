@@ -18,10 +18,19 @@ trait Auth[F[_]] {
       payload: NewPasswordPayload
   ): F[Either[String, Option[User]]]
   def delete(email: String): F[Boolean]
+  def sendPasswordRecoveryToken(email: String): F[Unit]
+  def recoverPassword(email: String, token: String, newPassword: String): F[Boolean]
 }
 
-class LiveAuth[F[_]: Async: Logger] private (users: Users[F]) extends Auth[F] {
-  def login(email: String, password: String): F[Option[User]] =
+class LiveAuth[F[_]: Async: Logger] private (users: Users[F], tokens: Tokens[F], emails: Emails[F])
+    extends Auth[F] {
+
+  private def updateUser(user: User, newPassword: String) = for {
+    hashedNewPassword <- BCrypt.hashpw[F](newPassword)
+    updatedUserOpt <- users.update(user.copy(hashedPassword = hashedNewPassword))
+  } yield updatedUserOpt
+
+  override def login(email: String, password: String): F[Option[User]] =
     for {
       userOpt <- users.find(email)
       validatedUserOpt <- userOpt.filterA(user =>
@@ -32,7 +41,7 @@ class LiveAuth[F[_]: Async: Logger] private (users: Users[F]) extends Auth[F] {
       )
     } yield validatedUserOpt
 
-  def signUp(payload: NewUserPayload): F[Option[User]] =
+  override def signUp(payload: NewUserPayload): F[Option[User]] =
     users.find(payload.email).flatMap {
       case Some(_) => None.pure[F]
       case None =>
@@ -50,15 +59,10 @@ class LiveAuth[F[_]: Async: Logger] private (users: Users[F]) extends Auth[F] {
         } yield Some(user)
     }
 
-  def changePassword(
+  override def changePassword(
       email: String,
       payload: NewPasswordPayload
   ): F[Either[String, Option[User]]] = {
-    def updateUser(user: User, newPassword: String) = for {
-      hashedNewPassword <- BCrypt.hashpw[F](newPassword)
-      updatedUserOpt <- users.update(user.copy(hashedPassword = hashedNewPassword))
-    } yield updatedUserOpt
-
     def checkAndUpdate(user: User, oldPassword: String, newPassword: String) = for {
       passwordCorrect <- BCrypt.checkpwBool[F](
         oldPassword,
@@ -79,10 +83,30 @@ class LiveAuth[F[_]: Async: Logger] private (users: Users[F]) extends Auth[F] {
     }
   }
 
-  def delete(email: String): F[Boolean] = users.delete(email)
+  override def delete(email: String): F[Boolean] = users.delete(email)
+
+  override def sendPasswordRecoveryToken(email: String): F[Unit] =
+    tokens.getToken(email).flatMap {
+      case Some(token) => emails.sendPasswordRecoveryEmail(email, token)
+      case None        => ().pure[F]
+    }
+
+  override def recoverPassword(email: String, token: String, newPassword: String): F[Boolean] =
+    for {
+      userOpt <- users.find(email)
+      tokenIsValid <- tokens.checkToken(email, token)
+      result <- (userOpt, tokenIsValid) match {
+        case (Some(user), true) => updateUser(user, newPassword).map(_.nonEmpty)
+        case _                  => false.pure[F]
+      }
+    } yield result
 }
 
 object LiveAuth {
-  def apply[F[_]: Async: Logger](users: Users[F]): F[LiveAuth[F]] =
-    new LiveAuth[F](users).pure[F]
+  def apply[F[_]: Async: Logger](
+      users: Users[F],
+      tokens: Tokens[F],
+      emails: Emails[F]
+  ): F[LiveAuth[F]] =
+    new LiveAuth[F](users, tokens, emails).pure[F]
 }

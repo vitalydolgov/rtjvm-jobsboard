@@ -16,11 +16,17 @@ final class Core[F[_]] private (
 )
 
 object Core {
-  def apply[F[_]: Async: Logger](xa: Transactor[F]): Resource[F, Core[F]] = {
+  def apply[F[_]: Async: Logger](
+      xa: Transactor[F],
+      tokenConfig: TokenConfig,
+      emailServiceConfig: EmailServiceConfig
+  ): Resource[F, Core[F]] = {
     val coreF = for {
       jobs <- LiveJobs[F](xa)
       users <- LiveUsers[F](xa)
-      auth <- LiveAuth[F](users)
+      tokens <- LiveTokens[F](users)(xa, tokenConfig)
+      emails <- LiveEmails(emailServiceConfig)
+      auth <- LiveAuth[F](users, tokens, emails)
     } yield new Core(jobs, users, auth)
 
     Resource.eval(coreF)
