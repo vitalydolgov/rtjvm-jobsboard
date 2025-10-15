@@ -26,7 +26,10 @@ local.sbt
 .metals/
 metals.sbt
 
-# IDEA
-.idea
-.idea_modules
-/.worksheet/
+# Node.js
+app/node_modules/
+app/dist/
+app/.parcel-cache/
+
+# Tools
+*.paw

@@ -1,6 +1,53 @@
 lazy val scala3Version = "3.7.3"
+lazy val example = "example.com"
+
+ThisBuild / version := "0.1.0-SNAPSHOT"
+
+// Common package
 
 lazy val circeVersion = "0.14.0"
+
+lazy val common = (crossProject(JSPlatform, JVMPlatform) in file("common"))
+  .settings(
+    name := "common",
+    scalaVersion := scala3Version,
+    organization := example
+  )
+  .jvmSettings(
+    // add here if necessary
+  )
+  .jsSettings(
+    // Add JS-specific settings here
+  )
+
+// Frontend package
+
+lazy val tyrianVersion = "0.6.1"
+lazy val fs2DomVersion = "0.1.0"
+lazy val laikaVersion = "0.19.0"
+
+lazy val app = (project in file("app"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "jobsboard-app",
+    scalaVersion := scala3Version,
+    organization := example,
+    libraryDependencies ++= Seq(
+      "io.indigoengine" %%% "tyrian-io" % tyrianVersion,
+      "com.armanbilge" %%% "fs2-dom" % fs2DomVersion,
+      "org.planet42" %%% "laika-core" % laikaVersion,
+      "io.circe" %%% "circe-core" % circeVersion,
+      "io.circe" %%% "circe-parser" % circeVersion,
+      "io.circe" %%% "circe-generic" % circeVersion
+    ),
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+    semanticdbEnabled := true,
+    autoAPIMappings := true
+  )
+  .dependsOn(common.js)
+
+// Backend package
+
 lazy val catsEffectVersion = "3.3.14"
 lazy val http4sVersion = "0.23.15"
 lazy val doobieVersion = "1.0.0-RC1"
@@ -14,12 +61,11 @@ lazy val logbackVersion = "1.4.0"
 lazy val slf4jVersion = "2.0.0"
 lazy val javaMailVersion = "1.6.2"
 
-lazy val server = (project in file("."))
+lazy val server = (project in file("server"))
   .settings(
-    name := "jobsboard",
-    version := "0.1.0-SNAPSHOT",
+    name := "jobsboard-server",
     scalaVersion := scala3Version,
-    organization := "com.example",
+    organization := example,
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -45,3 +91,4 @@ lazy val server = (project in file("."))
     ),
     Compile / mainClass := Some("com.example.jobsboard.Application")
   )
+  .dependsOn(common.jvm)
