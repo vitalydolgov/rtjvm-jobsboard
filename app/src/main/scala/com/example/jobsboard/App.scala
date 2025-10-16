@@ -8,7 +8,7 @@ import org.scalajs.dom.window
 import scala.concurrent.duration.*
 
 import com.example.jobsboard.core.*
-import com.example.jobsboard.core.Router.ChangeLocation
+import com.example.jobsboard.components.*
 
 object App {
   type Message = Router.Message
@@ -38,24 +38,9 @@ class App extends TyrianApp[App.Message, App.Model] {
       (Model(newRouter), command)
   }
 
-  private def navLink(text: String, location: String) =
-    a(
-      href := location,
-      `class` := "nav-link",
-      onEvent(
-        "click",
-        e => {
-          e.preventDefault()
-          Router.ChangeLocation(location)
-        }
-      )
-    )(text)
-
   override def view(model: Model): Html[Message] =
     div(
-      navLink("Jobs", "/jobs"),
-      navLink("Login", "/login"),
-      navLink("Sign Up", "/signup"),
+      Header.view,
       div(s"You are now at: ${model.router.location}")
     )
 }
