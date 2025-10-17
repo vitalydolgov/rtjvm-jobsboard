@@ -6,6 +6,7 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
 import com.example.jobsboard.core.*
+import com.example.jobsboard.pages.*
 
 object Header {
 
@@ -55,9 +56,9 @@ object Header {
       logo,
       div(`class` := "header-nav")(
         ul(`class` := "header-links")(
-          navLink("Jobs", "/jobs"),
-          navLink("Login", "/login"),
-          navLink("Sign Up", "/signup")
+          navLink("Jobs", Page.Urls.JOBS),
+          navLink("Login", Page.Urls.LOGIN),
+          navLink("Sign Up", Page.Urls.SIGNUP)
         )
       )
     )

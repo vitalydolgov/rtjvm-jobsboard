@@ -9,19 +9,24 @@ import scala.concurrent.duration.*
 
 import com.example.jobsboard.core.*
 import com.example.jobsboard.components.*
+import com.example.jobsboard.pages.*
 
 object App {
-  type Message = Router.Message
+  type Message = Router.Message | Page.Message
 
-  case class Model(router: Router)
+  case class Model(router: Router, page: Page)
 }
 
 @JSExportTopLevel("JobsboardApp")
 class App extends TyrianApp[App.Message, App.Model] {
   import App.*
+
   override def init(flags: Map[String, String]): (Model, Cmd[IO, Message]) = {
-    val (router, command) = Router.startAt(window.location.pathname)
-    (Model(router), command)
+    val location = window.location.pathname
+    val page = Page.get(location)
+    val pageCommand = page.initCommand
+    val (router, routerCommand) = Router.startAt(location)
+    (Model(router, page), routerCommand |+| pageCommand)
   }
 
   override def subscriptions(model: Model): Sub[IO, Message] =
@@ -34,13 +39,21 @@ class App extends TyrianApp[App.Message, App.Model] {
 
   override def update(model: Model): Message => (Model, Cmd[IO, Message]) = {
     case message: Router.Message =>
-      val (newRouter, command) = model.router.update(message)
-      (Model(newRouter), command)
+      val (newRouter, newRouterCommand) = model.router.update(message)
+      if (model.router == newRouter) (model, Cmd.None)
+      else {
+        val newPage = Page.get(newRouter.location)
+        val newPageCommand = newPage.initCommand
+        (model.copy(router = newRouter, page = newPage), newRouterCommand |+| newRouterCommand)
+      }
+    case message: Page.Message =>
+      val (newPage, command) = model.page.update(message)
+      (model.copy(page = newPage), command)
   }
 
   override def view(model: Model): Html[Message] =
     div(
       Header.view,
-      div(s"You are now at: ${model.router.location}")
+      model.page.view
     )
 }
