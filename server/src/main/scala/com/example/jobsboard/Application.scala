@@ -6,6 +6,7 @@ import org.http4s.server.*
 import org.http4s.HttpRoutes
 import org.http4s.dsl.*
 import org.http4s.dsl.impl.*
+import org.http4s.server.middleware.CORS
 import pureconfig.ConfigSource
 import pureconfig.error.ConfigReaderException
 import org.typelevel.log4cats.Logger
@@ -28,7 +29,7 @@ object Application extends IOApp.Simple {
           .default[IO]
           .withHost(emberConfig.host)
           .withPort(emberConfig.port)
-          .withHttpApp(httpApi.endpoints.orNotFound)
+          .withHttpApp(CORS(httpApi.endpoints).orNotFound)
           .build
       } yield server
 
