@@ -6,6 +6,12 @@ import cats.effect.IO
 object Page {
   trait Message
 
+  enum StatusKind {
+    case SUCCESS, ERROR, LOADING
+  }
+
+  final case class Status(message: String, kind: StatusKind)
+
   object Urls {
     val EMPTY = ""
     val HOME = "/"

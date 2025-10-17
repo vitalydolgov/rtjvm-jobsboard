@@ -6,6 +6,14 @@ object auth {
       password: String
   )
 
+  case class NewUserPayload(
+      email: String,
+      password: String,
+      firstName: Option[String],
+      lastName: Option[String],
+      company: Option[String]
+  )
+
   case class NewPasswordPayload(
       oldPassword: String,
       newPassword: String

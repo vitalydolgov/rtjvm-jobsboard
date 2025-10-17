@@ -3,6 +3,7 @@ package com.example.jobsboard.fixtures
 import cats.effect.*
 import com.example.jobsboard.algebra.*
 import com.example.jobsboard.domain.user.*
+import com.example.jobsboard.domain.auth.*
 
 trait UserFixture {
 

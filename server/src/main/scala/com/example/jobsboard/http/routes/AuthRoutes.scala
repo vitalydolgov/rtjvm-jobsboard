@@ -44,7 +44,8 @@ class AuthRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (
           userOpt <- auth.signUp(payload)
           response <- userOpt match {
             case Some(user) => Created(user.email)
-            case None       => BadRequest(s"User with email ${payload.email} already exists.")
+            case None =>
+              BadRequest(FailureResponse(s"User with email ${payload.email} already exists."))
           }
         } yield response
       }
