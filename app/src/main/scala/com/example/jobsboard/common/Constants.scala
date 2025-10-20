@@ -9,6 +9,7 @@ object Constants {
     val signup = s"$root/api/auth/users"
     val login = s"$root/api/auth/login"
     val logout = s"$root/api/auth/logout"
+    val checkToken = s"$root/api/auth/checkToken"
   }
 
   object cookies {

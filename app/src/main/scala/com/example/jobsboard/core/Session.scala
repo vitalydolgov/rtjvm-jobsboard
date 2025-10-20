@@ -12,11 +12,14 @@ import com.example.jobsboard.common.*
 import com.example.jobsboard.pages.*
 
 object Session {
-  trait Message extends App.Message
+  sealed trait Message extends App.Message
   case class SetToken(email: String, token: String, isNewSession: Boolean) extends Message
   case object Logout extends Message
   case object LogoutSuccess extends Message
   case object LogoutError extends Message
+  case object CheckToken extends Message
+  case object KeepToken extends Message
+  case object InvalidateToken extends Message
 
   private def getCookie(name: String): Option[String] = {
     document.cookie
@@ -37,6 +40,18 @@ object Session {
       val method: Method = Method.Post
       val onResponse: Response => Message = _ => LogoutSuccess
       val onError: HttpError => Message = _ => LogoutError
+    }
+
+    val checkToken = new Endpoint[Message] {
+      val location: String = Constants.endpoints.checkToken
+      val method: Method = Method.Get
+      val onResponse: Response => Message = response =>
+        response.status match {
+          case Status(200, _) => KeepToken
+          case _              => InvalidateToken
+        }
+
+      val onError: HttpError => Message = _ => InvalidateToken
     }
   }
 
@@ -73,6 +88,9 @@ object Session {
 
     def logout(): Cmd[IO, Message] =
       Endpoints.logout.callAuthorized()
+
+    def checkToken(): Cmd[IO, Message] =
+      Endpoints.checkToken.callAuthorized()
   }
 }
 
@@ -85,20 +103,19 @@ final case class Session(
   def update(message: Message): (Session, Cmd[IO, App.Message]) = message match {
     case SetToken(email, token, isNewSession) =>
       val cookieCommand = Commands.setAllSessionCookies(email, token, isNewSession)
-      val routingCommand =
+      val routerCommand =
         if (isNewSession) Cmd.Emit(Router.ChangeLocation(Page.Urls.HOME))
-        else Cmd.None
-
-      (
-        this.copy(email = Some(email), token = Some(token)),
-        cookieCommand |+| routingCommand
-      )
+        else Cmd.Emit(CheckToken)
+      (this.copy(email = Some(email), token = Some(token)), cookieCommand |+| routerCommand)
+    case CheckToken => (this, Commands.checkToken())
+    case KeepToken  => (this, Cmd.None)
     case Logout =>
       (this, token.map(_ => Commands.logout()).getOrElse(Cmd.None))
-    case LogoutSuccess =>
+    case LogoutSuccess | InvalidateToken =>
       val cookieCommand = Commands.clearAllSessionCookies()
       val routerCommand = Cmd.Emit(Router.ChangeLocation(Page.Urls.HOME))
       (this.copy(email = None, token = None), cookieCommand |+| routerCommand)
+    case LogoutError => (this, Cmd.None)
   }
 
   def initCommand: Cmd[IO, Message] = {
