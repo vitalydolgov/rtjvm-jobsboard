@@ -12,9 +12,8 @@ import com.example.jobsboard.components.*
 import com.example.jobsboard.pages.*
 
 object App {
-  type Message = Router.Message | Page.Message
-
-  case class Model(router: Router, page: Page)
+  trait Message
+  case class Model(router: Router, session: Session, page: Page)
 }
 
 @JSExportTopLevel("JobsboardApp")
@@ -26,7 +25,9 @@ class App extends TyrianApp[App.Message, App.Model] {
     val page = Page.get(location)
     val pageCommand = page.initCommand
     val (router, routerCommand) = Router.startAt(location)
-    (Model(router, page), routerCommand |+| pageCommand)
+    val session = Session()
+    val sessionCommand = session.initCommand
+    (Model(router, session, page), routerCommand |+| sessionCommand |+| pageCommand)
   }
 
   override def subscriptions(model: Model): Sub[IO, Message] =
@@ -46,7 +47,10 @@ class App extends TyrianApp[App.Message, App.Model] {
         val newPageCommand = newPage.initCommand
         (model.copy(router = newRouter, page = newPage), newRouterCommand |+| newRouterCommand)
       }
-    case message: Page.Message =>
+    case message: Session.Message =>
+      val (newSession, command) = model.session.update(message)
+      (model.copy(session = newSession), command)
+    case message: App.Message =>
       val (newPage, command) = model.page.update(message)
       (model.copy(page = newPage), command)
   }
@@ -54,6 +58,7 @@ class App extends TyrianApp[App.Message, App.Model] {
   override def view(model: Model): Html[Message] =
     div(
       Header.view,
-      model.page.view
+      model.page.view,
+      div(model.session.email.getOrElse("Unauthenticated"))
     )
 }

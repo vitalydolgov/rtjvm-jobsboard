@@ -10,11 +10,13 @@ import tyrian.cmds.Logger
 
 import cats.effect.IO
 
+import com.example.jobsboard.*
+import com.example.jobsboard.core.*
 import com.example.jobsboard.common.*
 import com.example.jobsboard.domain.auth.*
 
 object LoginPage {
-  trait Message extends Page.Message
+  trait Message extends App.Message
   case class UpdateEmail(email: String) extends Message
   case class UpdatePassword(password: String) extends Message
   case class LoginSuccess(token: String) extends Message
@@ -24,10 +26,10 @@ object LoginPage {
 
   object Endpoints {
     val login = new Endpoint[Message] {
-      override val location: String = Constants.Endpoints.login
+      override val location: String = Constants.endpoints.login
       override val method: Method = Method.Post
 
-      override val onSuccess: Response => Message =
+      override val onResponse: Response => Message =
         resp => {
           val tokenOpt = resp.headers.get("authorization")
           tokenOpt match {
@@ -55,7 +57,7 @@ final case class LoginPage(
 ) extends Page {
   import LoginPage.*
 
-  override def initCommand: Cmd[IO, Page.Message] = Cmd.None
+  override def initCommand: Cmd[IO, App.Message] = Cmd.None
 
   private def setErrorStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
@@ -63,7 +65,7 @@ final case class LoginPage(
   private def setSuccessStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.SUCCESS)))
 
-  override def update(message: Page.Message): (Page, Cmd[IO, Page.Message]) = message match {
+  override def update(message: App.Message): (Page, Cmd[IO, App.Message]) = message match {
     case UpdateEmail(email)       => (this.copy(email = email), Cmd.None)
     case UpdatePassword(password) => (this.copy(password = password), Cmd.None)
     case AttemptLogin =>
@@ -72,7 +74,7 @@ final case class LoginPage(
       else (this, Commands.login(LoginPayload(email, password)))
     case LoginError(error) => (setErrorStatus(error), Cmd.None)
     case LoginSuccess(token) =>
-      (setSuccessStatus("Success!"), Logger.consoleLog[IO](s"token = $token"))
+      (setSuccessStatus("Success!"), Cmd.Emit(Session.SetToken(email, token, isNewSession = true)))
     case _ => (this, Cmd.None)
   }
 
@@ -91,10 +93,10 @@ final case class LoginPage(
       input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
     )
 
-  override def view: Html[Page.Message] =
+  override def view: Html[App.Message] =
     div(`class` := "form-section")(
       div(`class` := "top-section")(
-        h1("Sign Up")
+        h1("Log In")
       ),
       form(
         name := "signup",

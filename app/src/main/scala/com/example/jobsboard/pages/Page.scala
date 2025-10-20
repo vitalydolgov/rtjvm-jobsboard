@@ -3,8 +3,10 @@ package com.example.jobsboard.pages
 import tyrian.*
 import cats.effect.IO
 
+import com.example.jobsboard.*
+
 object Page {
-  trait Message
+  trait Message extends App.Message
 
   enum StatusKind {
     case SUCCESS, ERROR, LOADING
@@ -20,6 +22,7 @@ object Page {
     val FORGOT_PASSWORD = "/forgot-password"
     val RECOVER_PASSWORD = "/recover-password"
     val JOBS = "/jobs"
+    val HASH = "#"
   }
 
   import Urls.*
@@ -37,9 +40,7 @@ object Page {
 }
 
 abstract class Page {
-  import Page.*
-
-  def initCommand: Cmd[IO, Message]
-  def update(message: Message): (Page, Cmd[IO, Message])
-  def view: Html[Message]
+  def initCommand: Cmd[IO, App.Message]
+  def update(message: App.Message): (Page, Cmd[IO, App.Message])
+  def view: Html[App.Message]
 }

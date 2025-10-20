@@ -8,11 +8,12 @@ import io.circe.syntax.*
 import io.circe.parser.*
 import io.circe.generic.auto.*
 
+import com.example.jobsboard.*
 import com.example.jobsboard.common.*
 import com.example.jobsboard.domain.auth.*
 
 object SignUpPage {
-  trait Message extends Page.Message
+  trait Message extends App.Message
   case class UpdateEmail(email: String) extends Message
   case class UpdatePassword(password: String) extends Message
   case class UpdateConfirmPassword(confirmPassword: String) extends Message
@@ -26,10 +27,10 @@ object SignUpPage {
 
   object Endpoints {
     val signup = new Endpoint[Message] {
-      override val location: String = Constants.Endpoints.signup
+      override val location: String = Constants.endpoints.signup
       override val method: Method = Method.Post
 
-      override val onSuccess: Response => Message =
+      override val onResponse: Response => Message =
         resp =>
           resp.status match {
             case Status(201, _) => SignUpSuccess("Success! Log in now.")
@@ -66,7 +67,7 @@ final case class SignUpPage(
 ) extends Page {
   import SignUpPage.*
 
-  override def initCommand: Cmd[IO, Page.Message] = Cmd.None
+  override def initCommand: Cmd[IO, App.Message] = Cmd.None
 
   private def setErrorStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
@@ -74,7 +75,7 @@ final case class SignUpPage(
   private def setSuccessStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.SUCCESS)))
 
-  override def update(message: Page.Message): (Page, Cmd[IO, Page.Message]) = message match {
+  override def update(message: App.Message): (Page, Cmd[IO, App.Message]) = message match {
     case UpdateEmail(email)              => (this.copy(email = email), Cmd.None)
     case UpdatePassword(password)        => (this.copy(password = password), Cmd.None)
     case UpdateConfirmPassword(password) => (this.copy(confirmPassword = password), Cmd.None)
@@ -119,7 +120,7 @@ final case class SignUpPage(
       input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
     )
 
-  override def view: Html[Page.Message] =
+  override def view: Html[App.Message] =
     div(`class` := "form-section")(
       div(`class` := "top-section")(
         h1("Sign Up")

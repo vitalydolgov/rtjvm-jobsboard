@@ -5,6 +5,7 @@ import tyrian.Html.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
+import com.example.jobsboard.*
 import com.example.jobsboard.core.*
 import com.example.jobsboard.pages.*
 
@@ -35,7 +36,7 @@ object Header {
     )
   }
 
-  private def navLink(text: String, location: String) = {
+  private def navLink(text: String, location: String)(locationToMessage: String => App.Message) = {
     li(`class` := "nav-item")(
       a(
         href := location,
@@ -44,10 +45,34 @@ object Header {
           "click",
           e => {
             e.preventDefault()
-            Router.ChangeLocation(location)
+            locationToMessage(location)
           }
         )
       )(text)
+    )
+  }
+
+  private def simpleNavLink(text: String, location: String) = {
+    navLink(text, location)(Router.ChangeLocation(_))
+  }
+
+  private def navLinks: List[Html[App.Message]] = {
+    val constantLinks = List(
+      simpleNavLink("Jobs", Page.Urls.JOBS)
+    )
+
+    val unauthedLinks = List(
+      simpleNavLink("Login", Page.Urls.LOGIN),
+      simpleNavLink("Sign Up", Page.Urls.SIGNUP)
+    )
+
+    val authedLinks = List(
+      navLink("Log Out", Page.Urls.HASH)(_ => Session.Logout)
+    )
+
+    constantLinks ++ (
+      if (Session.isActive) authedLinks
+      else unauthedLinks
     )
   }
 
@@ -56,9 +81,7 @@ object Header {
       logo,
       div(`class` := "header-nav")(
         ul(`class` := "header-links")(
-          navLink("Jobs", Page.Urls.JOBS),
-          navLink("Login", Page.Urls.LOGIN),
-          navLink("Sign Up", Page.Urls.SIGNUP)
+          navLinks
         )
       )
     )
