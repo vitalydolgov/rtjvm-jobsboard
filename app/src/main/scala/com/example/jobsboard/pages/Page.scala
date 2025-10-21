@@ -20,7 +20,7 @@ object Page {
     val LOGIN = "/login"
     val SIGNUP = "/signup"
     val FORGOT_PASSWORD = "/forgot-password"
-    val RECOVER_PASSWORD = "/recover-password"
+    val RESET_PASSWORD = "/reset-password"
     val JOBS = "/jobs"
     val HASH = "#"
   }
@@ -31,7 +31,7 @@ object Page {
     case `LOGIN`                   => LoginPage()
     case `SIGNUP`                  => SignUpPage()
     case `FORGOT_PASSWORD`         => ForgotPasswordPage()
-    case `RECOVER_PASSWORD`        => RecoverPasswordPage()
+    case `RESET_PASSWORD`          => ResetPasswordPage()
     case `EMPTY` | `HOME` | `JOBS` => JobListPage()
     case s"/jobs/$id"              => JobPage(id)
     case _                         => NotFoundPage()

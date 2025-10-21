@@ -3,8 +3,6 @@ package com.example.jobsboard.pages
 import tyrian.*
 import tyrian.Html.*
 import tyrian.http.*
-import io.circe.syntax.*
-import io.circe.parser.*
 import io.circe.generic.auto.*
 import tyrian.cmds.Logger
 
@@ -54,10 +52,9 @@ final case class LoginPage(
     email: String = "",
     password: String = "",
     status: Option[Page.Status] = None
-) extends Page {
-  import LoginPage.*
+) extends FormPage("Log In", status) {
 
-  override def initCommand: Cmd[IO, App.Message] = Cmd.None
+  import LoginPage.*
 
   private def setErrorStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
@@ -78,41 +75,10 @@ final case class LoginPage(
     case _ => (this, Cmd.None)
   }
 
-  private def formInput(
-      name: String,
-      uid: String,
-      kind: String,
-      isRequired: Boolean,
-      onChange: String => Message
-  ) =
-    div(`class` := "form-input")(
-      label(`for` := name, `class` := "form-label")(
-        if (isRequired) span("*") else span(),
-        text(name)
-      ),
-      input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
-    )
-
-  override def view: Html[App.Message] =
-    div(`class` := "form-section")(
-      div(`class` := "top-section")(
-        h1("Log In")
-      ),
-      form(
-        name := "signup",
-        `class` := "form",
-        onEvent(
-          "submit",
-          e => {
-            e.preventDefault()
-            NoOp
-          }
-        )
-      )(
-        formInput("Email", "email", "text", true, UpdateEmail(_)),
-        formInput("Password", "password", "password", true, UpdatePassword(_)),
-        button(`type` := "button", onClick(AttemptLogin))("Log In")
-      ),
-      status.map(s => div(s.message)).getOrElse(div())
-    )
+  override def content: List[Html[App.Message]] = List(
+    formInput("Email", "email", "text", true, UpdateEmail(_)),
+    formInput("Password", "password", "password", true, UpdatePassword(_)),
+    button(`type` := "button", onClick(AttemptLogin))("Log In"),
+    auxLink(Page.Urls.FORGOT_PASSWORD, "Forgot password?")
+  )
 }

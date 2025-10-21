@@ -35,11 +35,11 @@ object SignUpPage {
           resp.status match {
             case Status(201, _) => SignUpSuccess("Success! Log in now.")
             case Status(status, _) if status >= 400 && status < 500 =>
-              val json = resp.body
-              val parsed = parse(json).flatMap(_.hcursor.get[String]("error"))
-              parsed match {
-                case Left(err)  => SignUpError(s"Error: ${err.getMessage}")
-                case Right(err) => SignUpError(err)
+              val rawJson = resp.body
+              val parsedJson = parse(rawJson).flatMap(_.hcursor.get[String]("error"))
+              parsedJson match {
+                case Left(error)    => SignUpError(s"Error: ${error.getMessage}")
+                case Right(message) => SignUpError(message)
               }
             case _ => ???
           }
@@ -64,10 +64,9 @@ final case class SignUpPage(
     lastName: String = "",
     company: String = "",
     status: Option[Page.Status] = None
-) extends Page {
-  import SignUpPage.*
+) extends FormPage("Sign Up", status) {
 
-  override def initCommand: Cmd[IO, App.Message] = Cmd.None
+  import SignUpPage.*
 
   private def setErrorStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
@@ -105,45 +104,13 @@ final case class SignUpPage(
     case _                      => (this, Cmd.None)
   }
 
-  private def formInput(
-      name: String,
-      uid: String,
-      kind: String,
-      isRequired: Boolean,
-      onChange: String => Message
-  ) =
-    div(`class` := "form-input")(
-      label(`for` := name, `class` := "form-label")(
-        if (isRequired) span("*") else span(),
-        text(name)
-      ),
-      input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
-    )
-
-  override def view: Html[App.Message] =
-    div(`class` := "form-section")(
-      div(`class` := "top-section")(
-        h1("Sign Up")
-      ),
-      form(
-        name := "signup",
-        `class` := "form",
-        onEvent(
-          "submit",
-          e => {
-            e.preventDefault()
-            NoOp
-          }
-        )
-      )(
-        formInput("Email", "email", "text", true, UpdateEmail(_)),
-        formInput("Password", "password", "password", true, UpdatePassword(_)),
-        formInput("Confirm Password", "confirm", "password", true, UpdateConfirmPassword(_)),
-        formInput("First Name", "email", "text", false, UpdateFirstName(_)),
-        formInput("Last Name", "email", "text", false, UpdateLastName(_)),
-        formInput("Company", "email", "text", false, UpdateCompany(_)),
-        button(`type` := "button", onClick(AttemptSignUp))("Sign Up")
-      ),
-      status.map(s => div(s.message)).getOrElse(div())
-    )
+  override def content: List[Html[App.Message]] = List(
+    formInput("Email", "email", "text", true, UpdateEmail(_)),
+    formInput("Password", "password", "password", true, UpdatePassword(_)),
+    formInput("Confirm Password", "confirm", "password", true, UpdateConfirmPassword(_)),
+    formInput("First Name", "email", "text", false, UpdateFirstName(_)),
+    formInput("Last Name", "email", "text", false, UpdateLastName(_)),
+    formInput("Company", "email", "text", false, UpdateCompany(_)),
+    button(`type` := "button", onClick(AttemptSignUp))("Sign Up")
+  )
 }

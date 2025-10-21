@@ -13,6 +13,8 @@ import com.example.jobsboard.pages.*
 
 object App {
   trait Message
+  case object NoOp extends Message
+
   case class Model(router: Router, session: Session, page: Page)
 }
 
@@ -45,7 +47,7 @@ class App extends TyrianApp[App.Message, App.Model] {
       else {
         val newPage = Page.get(newRouter.location)
         val newPageCommand = newPage.initCommand
-        (model.copy(router = newRouter, page = newPage), newRouterCommand |+| newRouterCommand)
+        (model.copy(router = newRouter, page = newPage), newRouterCommand |+| newPageCommand)
       }
     case message: Session.Message =>
       val (newSession, command) = model.session.update(message)
