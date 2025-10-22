@@ -24,8 +24,7 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
       effect(10).map(_.foreach(_.reset()))
     }(_ => App.NoOp)
 
-  override def initCommand: Cmd[IO, App.Message] =
-    clearForm()
+  override def initCommand: Cmd[IO, App.Message] = clearForm()
 
   protected def content: List[Html[App.Message]]
 

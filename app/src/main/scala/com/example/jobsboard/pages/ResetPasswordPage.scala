@@ -34,7 +34,7 @@ object ResetPasswordPage {
               case Left(error)    => ResetPasswordError(s"Error: ${error.getMessage}")
               case Right(message) => ResetPasswordError(message)
             }
-          case Status(_, message) => ResetPasswordError(message)
+          case _ => ResetPasswordError("Unknown error.")
         }
       override val onError: HttpError => Message =
         err => ResetPasswordError(err.toString)

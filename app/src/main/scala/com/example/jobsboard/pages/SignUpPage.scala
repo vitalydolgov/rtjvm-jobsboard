@@ -41,7 +41,7 @@ object SignUpPage {
                 case Left(error)    => SignUpError(s"Error: ${error.getMessage}")
                 case Right(message) => SignUpError(message)
               }
-            case _ => ???
+            case _ => SignUpError("Unknown error.")
           }
 
       override val onError: HttpError => Message =
