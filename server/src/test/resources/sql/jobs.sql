@@ -52,12 +52,12 @@ INSERT INTO jobs (
     false, -- remote
     'San Francisco, CA', -- location
     NULL, -- salaryLo
-    NULL, -- salaryHi
+    100000, -- salaryHi
     NULL, -- currency
-    NULL, -- country
+    'US', -- country
     ARRAY['scala', 'cats'], -- tags
     NULL, -- image
-    NULL, -- seniority
+    'Senior', -- seniority
     NULL, -- other
     false -- active
 )

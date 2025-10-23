@@ -21,12 +21,12 @@ trait JobFixture {
       remote = false,
       location = "San Francisco, CA",
       salaryLo = None,
-      salaryHi = None,
+      salaryHi = Some(100000),
       currency = None,
-      country = None,
+      country = Some("US"),
       tags = Some(List("scala", "cats")),
       image = None,
-      seniority = None,
+      seniority = Some("Senior"),
       other = None
     ),
     active = false
@@ -45,12 +45,12 @@ trait JobFixture {
       remote = false,
       location = "New York, NY",
       salaryLo = None,
-      salaryHi = None,
+      salaryHi = Some(100000),
       currency = None,
-      country = None,
+      country = Some("US"),
       tags = Some(List("scala", "cats")),
       image = None,
-      seniority = None,
+      seniority = Some("Senior"),
       other = None
     ),
     active = false
@@ -69,14 +69,18 @@ trait JobFixture {
       remote = true,
       location = "Austin, TX",
       salaryLo = None,
-      salaryHi = None,
+      salaryHi = Some(100000),
       currency = None,
-      country = None,
+      country = Some("US"),
       tags = Some(List("scala", "cats")),
       image = None,
-      seniority = None,
+      seniority = Some("Senior"),
       other = None
     ),
     active = false
+  )
+
+  val DefaultFilter = JobFilter(
+    companies = List("ENCOM")
   )
 }

@@ -38,6 +38,10 @@ class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F]
       } yield resp
   }
 
+  private val allFilters: HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root / "filters" =>
+    jobs.possibleFilters().flatMap(Ok(_))
+  }
+
   private val findJobRoute: HttpRoutes[F] = HttpRoutes.of[F] { case GET -> Root / UUIDVar(id) =>
     jobs.find(id).flatMap {
       case Some(job) => Ok(job)
@@ -80,7 +84,7 @@ class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F]
     }
   }
 
-  private val unauthedRoutes = allJobsRoute <+> findJobRoute
+  private val unauthedRoutes = allJobsRoute <+> allFilters <+> findJobRoute
   private val authedRoutes = SecuredHandler[F].liftService(
     createJobRoute.restrictedTo(allRoles) |+|
       updateJobRoute.restrictedTo(allRoles) |+|

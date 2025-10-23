@@ -35,9 +35,7 @@ class JobsSpec
         program.asserting(_ shouldBe None)
       }
     }
-  }
 
-  "Jobs 'algebra'" - {
     "should retrieve job by ID" in {
       transactor.use { xa =>
         val program = for {
@@ -93,59 +91,79 @@ class JobsSpec
         program.asserting(_ shouldBe None)
       }
     }
-  }
 
-  "should delete an existing job" in {
-    transactor.use { xa =>
-      val program = for {
-        jobs <- LiveJobs[IO](xa)
-        deletedJobsCount <- jobs.delete(ScalaDeveloperENCOM.id)
-        jobsCount <- sql"SELECT COUNT(*) FROM jobs WHERE id = ${ScalaDeveloperENCOM.id}"
-          .query[Int]
-          .unique
-          .transact(xa)
-      } yield (deletedJobsCount, jobsCount)
+    "should delete an existing job" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          deletedJobsCount <- jobs.delete(ScalaDeveloperENCOM.id)
+          jobsCount <- sql"SELECT COUNT(*) FROM jobs WHERE id = ${ScalaDeveloperENCOM.id}"
+            .query[Int]
+            .unique
+            .transact(xa)
+        } yield (deletedJobsCount, jobsCount)
 
-      program.asserting { case (deletedJobsCount, jobsCount) =>
-        deletedJobsCount shouldBe 1
-        jobsCount shouldBe 0
+        program.asserting { case (deletedJobsCount, jobsCount) =>
+          deletedJobsCount shouldBe 1
+          jobsCount shouldBe 0
+        }
       }
     }
-  }
 
-  "should return zero when deleting a non-existent job" in {
-    transactor.use { xa =>
-      val program = for {
-        jobs <- LiveJobs[IO](xa)
-        deletedJobsCount <- jobs.delete(InvalidJobUuid)
-      } yield deletedJobsCount
+    "should return zero when deleting a non-existent job" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          deletedJobsCount <- jobs.delete(InvalidJobUuid)
+        } yield deletedJobsCount
 
-      program.asserting(_ shouldBe 0)
+        program.asserting(_ shouldBe 0)
+      }
     }
-  }
 
-  "should filter remote jobs" in {
-    transactor.use { xa =>
-      val program = for {
-        jobs <- LiveJobs[IO](xa)
-        filteredJobs <- jobs.all(JobFilter(remote = true), Pagination.default)
-      } yield filteredJobs
+    "should filter remote jobs" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          filteredJobs <- jobs.all(JobFilter(remote = true), Pagination.default)
+        } yield filteredJobs
 
-      program.asserting(_ shouldBe List())
+        program.asserting(_ shouldBe List())
+      }
     }
-  }
 
-  "should filter jobs by tags" in {
-    transactor.use { xa =>
-      val program = for {
-        jobs <- LiveJobs[IO](xa)
-        filteredJobs <- jobs.all(
-          JobFilter(tags = List("scala", "cats", "zio")),
-          Pagination.default
-        )
-      } yield filteredJobs
+    "should filter jobs by tags" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          filteredJobs <- jobs.all(
+            JobFilter(tags = List("scala", "cats", "zio")),
+            Pagination.default
+          )
+        } yield filteredJobs
 
-      program.asserting(_ shouldBe List(ScalaDeveloperENCOM))
+        program.asserting(_ shouldBe List(ScalaDeveloperENCOM))
+      }
+    }
+
+    "should surface all possible filters" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          filter <- jobs.possibleFilters()
+        } yield filter
+
+        program.asserting {
+          case JobFilter(companies, locations, countries, seniorities, tags, maxSalary, remote) =>
+            companies shouldBe List("ENCOM")
+            locations shouldBe List("San Francisco, CA")
+            countries shouldBe List("US")
+            seniorities shouldBe List("Senior")
+            tags.toSet shouldBe Set("cats", "scala")
+            maxSalary shouldBe Some(100000)
+            remote shouldBe false
+        }
+      }
     }
   }
 }

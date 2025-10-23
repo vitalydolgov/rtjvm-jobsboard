@@ -54,6 +54,8 @@ class JobRoutesSpec
         IO.pure(1)
       else
         IO.pure(0)
+
+    override def possibleFilters(): IO[JobFilter] = IO(DefaultFilter)
   }
 
   given logger: Logger[IO] = Slf4jLogger.getLogger[IO]
@@ -160,6 +162,18 @@ class JobRoutesSpec
       } yield {
         response.status shouldBe Status.Ok
         responseInvalid.status shouldBe Status.NotFound
+      }
+    }
+
+    "should surface all possible filters" in {
+      for {
+        response <- jobRoutes.orNotFound.run(
+          Request(method = Method.GET, uri = uri"/jobs/filters")
+        )
+        retrieved <- response.as[JobFilter]
+      } yield {
+        response.status shouldBe Status.Ok
+        retrieved shouldBe DefaultFilter
       }
     }
   }
