@@ -57,11 +57,59 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
       onChange: String => App.Message
   ) =
     div(`class` := "form-input")(
-      label(`for` := name, `class` := "form-label")(
+      label(`for` := uid, `class` := "form-label")(
         if (isRequired) span("*") else span(),
         text(name)
       ),
       input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
+    )
+
+  protected def formTextArea(
+      name: String,
+      uid: String,
+      isRequired: Boolean,
+      onChange: String => App.Message
+  ) =
+    div(`class` := "form-input")(
+      label(`for` := uid, `class` := "form-label")(
+        if (isRequired) span("*") else span(),
+        text(name)
+      ),
+      textarea(`class` := "form-control", id := uid, onInput(onChange))("")
+    )
+
+  protected def formImageUpload(
+      name: String,
+      uid: String,
+      image: Option[String],
+      onChange: Option[File] => App.Message
+  ) =
+    div(`class` := "form-input")(
+      label(`for` := uid, `class` := "form-label")(name),
+      input(
+        `type` := "file",
+        `class` := "form-control",
+        id := uid,
+        accept := "image/*",
+        onEvent(
+          "change",
+          e => {
+            val imageInput = e.target.asInstanceOf[HTMLInputElement]
+            val fileList = imageInput.files
+            if (fileList.length > 0)
+              onChange(Some(fileList(0)))
+            else
+              onChange(None)
+          }
+        )
+      ),
+      img(
+        id := "preview",
+        src := image.getOrElse(""),
+        alt := "Preview",
+        width := "100",
+        height := "100"
+      )
     )
 
   protected def auxLink(location: String, text: String): Html[App.Message] =

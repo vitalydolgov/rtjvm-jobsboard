@@ -22,8 +22,10 @@ object ForgotPasswordPage {
       override val location: String = Constants.endpoints.forgotPassword
       override val method: Method = Method.Post
 
-      override val onResponse: Response => Message =
-        _ => PasswordResetSuccess
+      override val onResponse: Response => Message = _.status match {
+        case Status(200, _) => PasswordResetSuccess
+        case _              => PasswordResetError("Unknown error.")
+      }
 
       override val onError: HttpError => Message =
         err => PasswordResetError(err.toString)
