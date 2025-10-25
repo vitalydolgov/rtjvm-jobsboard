@@ -129,7 +129,7 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
       filter.seniorities.toNel.map(seniorities => Fragments.in(fr"seniority", seniorities)),
       filter.tags.toNel.map(tags => Fragments.or(tags.toList.map(tag => fr"$tag=any(tags)")*)),
       filter.maxSalary.map(salary => fr"salaryHi > $salary"),
-      filter.remote.some.map(remote => fr"remote = $remote")
+      filter.remote.some.filter(identity).map(remote => fr"remote = $remote")
     )
 
     val paginationFragment: Fragment =

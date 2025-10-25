@@ -4,6 +4,7 @@ import tyrian.*
 import cats.effect.IO
 
 import com.example.jobsboard.*
+import com.example.jobsboard.components.*
 
 object Page {
   trait Message extends App.Message
@@ -43,8 +44,4 @@ object Page {
 
 }
 
-abstract class Page {
-  def initCommand: Cmd[IO, App.Message]
-  def update(message: App.Message): (Page, Cmd[IO, App.Message])
-  def view: Html[App.Message]
-}
+abstract class Page extends Component[App.Message, Page]

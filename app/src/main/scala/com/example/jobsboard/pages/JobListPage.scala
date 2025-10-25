@@ -3,38 +3,31 @@ package com.example.jobsboard.pages
 import tyrian.*
 import tyrian.Html.*
 import tyrian.http.*
-import io.circe.parser.*
 import io.circe.generic.auto.*
 import cats.effect.IO
 
 import com.example.jobsboard.*
 import com.example.jobsboard.common.*
 import com.example.jobsboard.domain.job.*
-import com.example.jobsboard.pages.Page.StatusKind
+import com.example.jobsboard.components.*
 
 object JobListPage {
   trait Message extends App.Message
   case class SetErrorStatus(message: String) extends Message
   case class AddJobs(jobs: List[Job], canLoadMore: Boolean) extends Message
   case object LoadMore extends Message
+  case class ApplyFilters(filters: Map[String, Set[String]]) extends Message
 
   object Endpoints {
     def getJobs(limit: Int, offset: Int) = new Endpoint[Message] {
       override val location: String = Constants.endpoints.jobs + s"?limit=$limit&offset=$offset"
       override val method: Method = Method.Post
 
-      override val onResponse: Response => Message = resp =>
-        resp.status match {
-          case Status(200, _) =>
-            val rawJson = resp.body
-            val parsedJson = parse(rawJson).flatMap(_.as[List[Job]])
-
-            parsedJson match {
-              case Left(err)   => SetErrorStatus(err.toString)
-              case Right(jobs) => AddJobs(jobs, canLoadMore = offset == 0 || jobs.nonEmpty)
-            }
-          case Status(_, message) => SetErrorStatus(s"Error: $message")
-        }
+      override val onResponse: Response => Message =
+        Endpoint.onResponse[List[Job], Message](
+          jobs => AddJobs(jobs, canLoadMore = offset == 0 || jobs.nonEmpty),
+          SetErrorStatus(_)
+        )
 
       override val onError: HttpError => Message = err => SetErrorStatus(err.toString)
     }
@@ -50,6 +43,10 @@ object JobListPage {
 }
 
 final case class JobListPage(
+    filterPanel: FilterPanel = FilterPanel(
+      applyFilters = ApplyFilters(_)
+    ),
+    filter: JobFilter = JobFilter(),
     jobs: List[Job] = List(),
     canLoadMore: Boolean = true,
     status: Option[Page.Status] = Some(Page.Status("Loading", Page.StatusKind.LOADING))
@@ -57,13 +54,24 @@ final case class JobListPage(
 
   import JobListPage.*
 
-  override def initCommand: Cmd[IO, App.Message] = Commands.getJobs()
+  override def initCommand: Cmd[IO, App.Message] =
+    filterPanel.initCommand |+| Commands.getJobs()
 
   private def setErrorStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.ERROR)))
 
   private def setSuccessStatus(message: String) =
     this.copy(status = Some(Page.Status(message, Page.StatusKind.SUCCESS)))
+
+  private def makeFilter(filters: Map[String, Set[String]]) = JobFilter(
+    companies = filters.get("Companies").getOrElse(Set()).toList,
+    locations = filters.get("Locations").getOrElse(Set()).toList,
+    countries = filters.get("Countries").getOrElse(Set()).toList,
+    seniorities = filters.get("Seniorities").getOrElse(Set()).toList,
+    tags = filters.get("Tags").getOrElse(Set()).toList,
+    maxSalary = Some(filterPanel.maxSalary),
+    remote = filterPanel.remote
+  )
 
   override def update(message: App.Message): (Page, Cmd[IO, App.Message]) = message match {
     case AddJobs(jobs, canLoadMore) =>
@@ -76,7 +84,13 @@ final case class JobListPage(
       )
     case SetErrorStatus(message) => (setErrorStatus(message), Cmd.None)
     case LoadMore                => (this, Commands.getJobs(offset = jobs.length))
-    case _                       => (this, Cmd.None)
+    case ApplyFilters(filters) =>
+      val newFilter = makeFilter(filters)
+      (this.copy(jobs = List(), filter = newFilter), Commands.getJobs(newFilter))
+    case message: FilterPanel.Message =>
+      val (newFilterPanel, command) = filterPanel.update(message)
+      (this.copy(filterPanel = newFilterPanel), command)
+    case _ => (this, Cmd.None)
   }
 
   private def jobCard(job: Job) = {
@@ -112,7 +126,10 @@ final case class JobListPage(
   }
 
   override def view: Html[App.Message] =
-    div(`class` := "jobs-container")(
-      jobs.map(jobCard(_)) ++ loadMoreButtonOpt
+    div(`class` := "job-list-page")(
+      filterPanel.view,
+      div(`class` := "jobs-container")(
+        jobs.map(jobCard(_)) ++ loadMoreButtonOpt
+      )
     )
 }

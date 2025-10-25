@@ -5,6 +5,7 @@ import tyrian.http.*
 import cats.effect.IO
 import io.circe.Encoder
 import io.circe.syntax.*
+import io.circe.parser.*
 
 import com.example.jobsboard.core.*
 
@@ -51,4 +52,23 @@ trait Endpoint[M] {
 
   def callAuthorized(): Cmd[IO, M] =
     call(authorization = Session.getToken())
+}
+
+object Endpoint {
+  def onResponse[A: io.circe.Decoder, M](
+      onSuccess: A => M,
+      onError: String => M
+  ): Response => M = resp => {
+    resp.status match {
+      case Status(code, _) if code >= 200 && code < 300 =>
+        val rawJson = resp.body
+        val parsedJson = parse(rawJson).flatMap(_.as[A])
+
+        parsedJson match {
+          case Left(err)    => onError(s"Parsing error: ${err.toString}")
+          case Right(value) => onSuccess(value)
+        }
+      case Status(_, message) => onError(s"Error: $message")
+    }
+  }
 }
