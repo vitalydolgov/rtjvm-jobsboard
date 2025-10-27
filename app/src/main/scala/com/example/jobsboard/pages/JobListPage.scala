@@ -69,7 +69,7 @@ final case class JobListPage(
     countries = filters.get("Countries").getOrElse(Set()).toList,
     seniorities = filters.get("Seniorities").getOrElse(Set()).toList,
     tags = filters.get("Tags").getOrElse(Set()).toList,
-    maxSalary = Some(filterPanel.maxSalary),
+    maxSalary = Some(filterPanel.maxSalary).filter(_ > 0),
     remote = filterPanel.remote
   )
 
@@ -132,10 +132,16 @@ final case class JobListPage(
   }
 
   override def view: Html[App.Message] =
-    div(`class` := "job-list-page")(
-      filterPanel.view,
-      div(`class` := "jobs-container")(
-        jobs.map(jobCard(_)) ++ loadMoreButtonOpt
+    section(`class` := "section-1")(
+      div(`class` := "container")(
+        div(`class` := "row jvm-recent-jobs-body")(
+          div(`class` := "col-lg-4")(
+            filterPanel.view
+          ),
+          div(`class` := "col-lg-8")(
+            jobs.map(jobCard(_)) ++ loadMoreButtonOpt
+          )
+        )
       )
     )
 }

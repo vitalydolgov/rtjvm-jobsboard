@@ -80,10 +80,36 @@ final case class FilterPanel(
       }
       .getOrElse(div())
 
+  private def filterGroup(groupName: String, contents: Html[App.Message]) =
+    div(`class` := "accordion-item")(
+      h2(`class` := "accordion-header", id := s"heading$groupName")(
+        button(
+          `class` := "accordion-button collapsed",
+          `type` := "button",
+          attribute("data-bs-toggle", "collapse"),
+          attribute("data-bs-target", s"#collapse$groupName"),
+          attribute("aria-expanded", "false"),
+          attribute("aria-controls", s"collapse$groupName")
+        )(
+          groupName
+        )
+      ),
+      div(
+        `class` := "accordion-collapse collapse",
+        id := s"collapse$groupName",
+        attribute("aria-labelledby", "headingOne"),
+        attribute("data-bs-parent", "#accordionExample")
+      )(
+        div(`class` := "accordion-body")(
+          contents
+        )
+      )
+    )
+
   private def salaryFilter =
-    div(`class` := "filter-group")(
-      h6(`class` := "filter-group-header")("Salary"),
-      div(`class` := "filter-group-content")(
+    filterGroup(
+      "Salary",
+      div(`class` := "mb-3")(
         label(`for` := "filter-salary")("Min (in local currency)"),
         input(
           `type` := "number",
@@ -94,26 +120,37 @@ final case class FilterPanel(
     )
 
   private def remoteCheckbox =
-    div(`class` := "filter-group-content")(
-      label(`for` := s"filter-remote")("Remote"),
-      input(
-        `type` := "checkbox",
-        id := s"filter-remote",
-        checked(remote),
-        onEvent(
-          "change",
-          event => {
-            val checkbox = event.target.asInstanceOf[HTMLInputElement]
-            UpdateRemote(checkbox.checked)
-          }
+    filterGroup(
+      "Remote",
+      div(`class` := "form-check")(
+        label(
+          `class` := "form-check-label",
+          `for` := s"filter-remote"
+        )("Remote"),
+        input(
+          `class` := "form-check-input",
+          `type` := "checkbox",
+          id := s"filter-remote",
+          checked(remote),
+          onEvent(
+            "change",
+            event => {
+              val checkbox = event.target.asInstanceOf[HTMLInputElement]
+              UpdateRemote(checkbox.checked)
+            }
+          )
         )
       )
     )
 
   private def checkbox(groupName: String, value: String, selectedValues: Set[String]) =
-    div(`class` := "filter-group-content")(
-      label(`for` := s"filter-$groupName-$value")(value),
+    div(`class` := "form-check")(
+      label(
+        `class` := "form-check-label",
+        `for` := s"filter-$groupName-$value"
+      )(value),
       input(
+        `class` := "form-check-input",
         `type` := "checkbox",
         id := s"filter-$groupName-$value",
         checked(selectedValues.contains(value)),
@@ -129,33 +166,61 @@ final case class FilterPanel(
 
   private def checkboxGroup(groupName: String, values: List[String]) = {
     val selectedValues = selectedFilters.get(groupName).getOrElse(Set())
-
-    div(`class` := "filter-group")(
-      h6(`class` := "filter-group-header")(groupName),
-      div(`class` := "filter-group-content")(
+    filterGroup(
+      groupName,
+      div(`class` := "mb-3")(
         values.map(value => checkbox(groupName, value, selectedValues))
       )
     )
   }
 
   private def applyFiltersButton =
-    button(
-      `type` := "button",
-      disabled(!isDirty),
-      onClick(ApplyFilters)
-    )("Apply Filters")
+    div(`class` := "jvm-accordion-search-btn")(
+      button(
+        `class` := "btn btn-primary",
+        `type` := "button",
+        disabled(!isDirty),
+        onClick(ApplyFilters)
+      )("Apply Filters")
+    )
 
   override def view: Html[App.Message] =
-    div(`class` := "filter-panel-container")(
-      errorText,
-      salaryFilter,
-      remoteCheckbox,
-      checkboxGroup("Companies", possibleFilters.companies),
-      checkboxGroup("Locations", possibleFilters.locations),
-      checkboxGroup("Countries", possibleFilters.countries),
-      checkboxGroup("Seniorities", possibleFilters.seniorities),
-      checkboxGroup("Tags", possibleFilters.tags),
-      applyFiltersButton
+    div(`class` := "accordion accordion-flush", id := "accordionFlushExample")(
+      div(`class` := "accordion-item")(
+        h2(`class` := "accordion-header", id := "flush-headingOne")(
+          button(
+            `class` := "accordion-button",
+            id := "accordion-search-filter",
+            `type` := "button",
+            attribute("data-bs-toggle", "collapse"),
+            attribute("data-bs-target", "#flush-collapseOne"),
+            attribute("aria-expanded", "true"),
+            attribute("aria-controls", "flush-collapseOne")
+          )(
+            div(`class` := "jvm-recent-jobs-accordion-body-heading")(
+              h3(span("Search"), text(" Filters"))
+            )
+          )
+        ),
+        div(
+          `class` := "accordion-collapse collapse show",
+          id := "flush-collapseOne",
+          attribute("aria-labelledby", "flush-headingOne"),
+          attribute("data-bs-parent", "#accordionFlushExample")
+        )(
+          div(`class` := "accordion-body p-0")(
+            errorText,
+            salaryFilter,
+            remoteCheckbox,
+            checkboxGroup("Companies", possibleFilters.companies),
+            checkboxGroup("Locations", possibleFilters.locations),
+            checkboxGroup("Countries", possibleFilters.countries),
+            checkboxGroup("Seniorities", possibleFilters.seniorities),
+            checkboxGroup("Tags", possibleFilters.tags),
+            applyFiltersButton
+          )
+        )
+      )
     )
 
 }
