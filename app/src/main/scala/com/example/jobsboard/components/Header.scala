@@ -18,6 +18,7 @@ object Header {
   private def logo = {
     div(
       a(
+        `class` := "navbar-brand",
         href := "/",
         onEvent(
           "click",
@@ -36,20 +37,28 @@ object Header {
     )
   }
 
+  private def navLink(text: String, location: String)(locationToMessage: String => App.Message) =
+    li(`class` := "nav-item")(
+      Anchors.navLink(text, location, "nav-link jvm-item")(locationToMessage)
+    )
+
+  private def simpleNavLink(text: String, location: String) =
+    navLink(text, location)(Router.ChangeLocation(_))
+
   private def navLinks: List[Html[App.Message]] = {
     val constantLinks = List(
-      Anchors.simpleNavLink("Jobs", Page.Urls.JOBS),
-      Anchors.simpleNavLink("Post a Job", Page.Urls.POST_JOB)
+      simpleNavLink("Jobs", Page.Urls.JOBS),
+      simpleNavLink("Post a Job", Page.Urls.POST_JOB)
     )
 
     val unauthedLinks = List(
-      Anchors.simpleNavLink("Login", Page.Urls.LOGIN),
-      Anchors.simpleNavLink("Sign Up", Page.Urls.SIGNUP)
+      simpleNavLink("Login", Page.Urls.LOGIN),
+      simpleNavLink("Sign Up", Page.Urls.SIGNUP)
     )
 
     val authedLinks = List(
-      Anchors.simpleNavLink("Profile", Page.Urls.PROFILE),
-      Anchors.navLink("Log Out", Page.Urls.HASH)(_ => Session.Logout)
+      simpleNavLink("Profile", Page.Urls.PROFILE),
+      navLink("Log Out", Page.Urls.HASH)(_ => Session.Logout)
     )
 
     constantLinks ++ (
@@ -59,11 +68,32 @@ object Header {
   }
 
   def view = {
-    div(`class` := "header-container")(
-      logo,
-      div(`class` := "header-nav")(
-        ul(`class` := "header-links")(
-          navLinks
+    div(`class` := "container-fluid p-0")(
+      div(`class` := "jvm-nav")(
+        div(`class` := "container")(
+          nav(`class` := "navbar navbar-expand-lg navbar-light JVM-nav")(
+            div(`class` := "container")(
+              logo,
+              button(
+                `class` := "navbar-toggler",
+                `type` := "button",
+                attribute("data-bs-toggle", "collapse"),
+                attribute("data-bs-target", "#navbarNav"),
+                attribute("aria-controls", "navbarNav"),
+                attribute("aria-expanded", "false"),
+                attribute("aria-label", "Toggle navigation")
+              )(
+                span(`class` := "navbar-toggler-icon")()
+              ),
+              div(`class` := "collapse navbar-collapse", id := "navbarNav")(
+                ul(
+                  `class` := "navbar-nav ms-auto menu align-center expanded text-center SMN_effect-3"
+                )(
+                  navLinks
+                )
+              )
+            )
+          )
         )
       )
     )

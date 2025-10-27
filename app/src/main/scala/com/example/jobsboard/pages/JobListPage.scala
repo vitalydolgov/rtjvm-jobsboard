@@ -106,7 +106,8 @@ final case class JobListPage(
         h4(
           Anchors.simpleNavLink(
             s"${job.jobInfo.company} - ${job.jobInfo.title}",
-            Page.Urls.JOB(job.id.toString)
+            Page.Urls.JOB(job.id.toString),
+            "nav-link"
           )
         )
       ),

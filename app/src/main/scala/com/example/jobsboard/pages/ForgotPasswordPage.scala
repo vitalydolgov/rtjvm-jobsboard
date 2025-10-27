@@ -67,7 +67,7 @@ final case class ForgotPasswordPage(
   override def content: List[Html[App.Message]] = List(
     formInput("Email", "email", "text", true, UpdateEmail(_)),
     button(`type` := "button", onClick(AttemptResetPassword))("Send Email"),
-    Anchors.simpleNavLink("Have a token?", Page.Urls.RESET_PASSWORD)
+    Anchors.simpleNavLink("Have a token?", Page.Urls.RESET_PASSWORD, "nav-link")
   )
 
 }

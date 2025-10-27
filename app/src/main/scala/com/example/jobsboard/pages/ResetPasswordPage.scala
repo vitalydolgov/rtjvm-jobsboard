@@ -86,6 +86,6 @@ final case class ResetPasswordPage(
     formInput("Recover Token", "token", "text", true, UpdateToken(_)),
     formInput("New Password", "password", "password", true, UpdateNewPassword(_)),
     button(`type` := "button", onClick(AttemptResetPassword))("Change Password"),
-    Anchors.simpleNavLink("Don't have a token yet?", Page.Urls.FORGOT_PASSWORD)
+    Anchors.simpleNavLink("Don't have a token yet?", Page.Urls.FORGOT_PASSWORD, "nav-link")
   )
 }
