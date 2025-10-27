@@ -10,19 +10,17 @@ object Anchors {
   def navLink(text: String, location: String, cssClass: String)(
       locationToMessage: String => App.Message
   ) = {
-    li(`class` := "nav-item")(
-      a(
-        href := location,
-        `class` := cssClass,
-        onEvent(
-          "click",
-          e => {
-            e.preventDefault()
-            locationToMessage(location)
-          }
-        )
-      )(text)
-    )
+    a(
+      href := location,
+      `class` := cssClass,
+      onEvent(
+        "click",
+        e => {
+          e.preventDefault()
+          locationToMessage(location)
+        }
+      )
+    )(text)
   }
 
   def simpleNavLink(text: String, location: String, cssClass: String) = {

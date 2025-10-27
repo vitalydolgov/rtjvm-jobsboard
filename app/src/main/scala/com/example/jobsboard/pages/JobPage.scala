@@ -10,6 +10,7 @@ import laika.format.*
 
 import com.example.jobsboard.*
 import com.example.jobsboard.common.*
+import com.example.jobsboard.components.*
 import com.example.jobsboard.domain.job.*
 
 object JobPage {
@@ -58,35 +59,6 @@ final case class JobPage(
     case _                 => (this, Cmd.None)
   }
 
-  private def jobDetails(job: Job) = {
-    def detail(value: String) =
-      if (value.nonEmpty) li(`class` := "job-detail-value")(value)
-      else div()
-
-    val location = job.jobInfo.country match {
-      case Some(country) => s"${job.jobInfo.location}, ${country}"
-      case None          => job.jobInfo.location
-    }
-
-    val currency = job.jobInfo.currency.getOrElse("")
-
-    val salary = (job.jobInfo.salaryLo, job.jobInfo.salaryHi) match {
-      case (Some(salaryLo), Some(salaryHi)) => s"$currency $salaryLo-$salaryHi"
-      case (Some(salaryLo), None)           => s"more than $currency $salaryLo"
-      case (None, Some(salaryHi))           => s"up to $currency $salaryHi"
-      case (None, None)                     => "unspecified salary"
-    }
-
-    div(`class` := "job-details-container")(
-      ul(`class` := "job-details")(
-        detail(location),
-        detail(salary),
-        detail(job.jobInfo.seniority.getOrElse("all levels")),
-        detail(job.jobInfo.tags.getOrElse(List()).mkString(", "))
-      )
-    )
-  }
-
   private def markdownTransformer = Transformer
     .from(Markdown)
     .to(HTML)
@@ -111,7 +83,7 @@ final case class JobPage(
         h1(s"${job.jobInfo.company} - ${job.jobInfo.title}")
       ),
       div(`class` := "job-overview")(
-        jobDetails(job)
+        JobComponents.summary(job)
       ),
       jobDescription(job),
       a(

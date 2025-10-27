@@ -93,30 +93,6 @@ final case class JobListPage(
     case _ => (this, Cmd.None)
   }
 
-  private def jobCard(job: Job) = {
-    div(`class` := "job-card")(
-      div(`class` := "job-card-image")(
-        img(
-          `class` := "job-logo",
-          src := job.jobInfo.image.getOrElse(""),
-          alt := job.jobInfo.title
-        )
-      ),
-      div(`class` := "job-card-content")(
-        h4(
-          Anchors.simpleNavLink(
-            s"${job.jobInfo.company} - ${job.jobInfo.title}",
-            Page.Urls.JOB(job.id.toString),
-            "nav-link"
-          )
-        )
-      ),
-      div(`class` := "job-card-apply")(
-        a(href := job.jobInfo.externalUrl, target := "blank")("Apply")
-      )
-    )
-  }
-
   private def loadMoreButtonOpt: Option[Html[App.Message]] = status.map { status =>
     div(`class` := "load-more-action")(
       status match {
@@ -124,7 +100,9 @@ final case class JobListPage(
         case Page.Status(message, Page.StatusKind.ERROR) => div(message)
         case Page.Status(_, Page.StatusKind.SUCCESS) =>
           if (canLoadMore)
-            button(`type` := "button", onClick(LoadMore))("Load More")
+            button(`type` := "button", `class` := "load-more-button", onClick(LoadMore))(
+              "Load More"
+            )
           else
             div("All jobs loaded.")
       }
@@ -139,7 +117,7 @@ final case class JobListPage(
             filterPanel.view
           ),
           div(`class` := "col-lg-8")(
-            jobs.map(jobCard(_)) ++ loadMoreButtonOpt
+            jobs.map(JobComponents.card) ++ loadMoreButtonOpt
           )
         )
       )
