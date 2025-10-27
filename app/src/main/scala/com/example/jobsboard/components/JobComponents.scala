@@ -33,7 +33,7 @@ object JobComponents {
     case None          => job.jobInfo.location
   }
 
-  def summary(job: Job) =
+  def summary(job: Job): Html[App.Message] =
     div(`class` := "job-summary")(
       detail("dollar", salary(job)),
       detail("location-dot", location(job)),

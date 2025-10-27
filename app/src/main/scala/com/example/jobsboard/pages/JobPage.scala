@@ -7,11 +7,26 @@ import cats.effect.IO
 import io.circe.generic.auto.*
 import laika.api.*
 import laika.format.*
+import scala.scalajs.*
+import scala.scalajs.js.*
+import scala.scalajs.js.annotation.*
 
 import com.example.jobsboard.*
 import com.example.jobsboard.common.*
 import com.example.jobsboard.components.*
 import com.example.jobsboard.domain.job.*
+
+@js.native
+@JSGlobal()
+class Moment extends js.Object {
+  def fromNow(): String = js.native
+}
+
+@js.native
+@JSImport("moment", JSImport.Default)
+object MomentLib extends js.Object {
+  def unix(date: Long): Moment = js.native
+}
 
 object JobPage {
   trait Message extends App.Message
@@ -73,31 +88,63 @@ final case class JobPage(
   }
 
   private def jobPage(job: Job) =
-    div(`class` := "job-page")(
-      div(`class` := "job-hero")(
-        img(
-          `class` := "job-logo",
-          src := job.jobInfo.image.getOrElse(""),
-          alt := job.jobInfo.title
+    div(`class` := "container-fluid the-rock")(
+      div(`class` := "row jvm-jobs-details-top-card")(
+        div(`class` := "col-md-12 p-0")(
+          div(`class` := "jvm-jobs-details-card-profile-img")(
+            img(
+              `class` := "img-fluid",
+              src := job.jobInfo.image.getOrElse(""),
+              alt := job.jobInfo.title
+            )
+          ),
+          div(`class` := "jvm-jobs-details-card-profile-title")(
+            h1(s"${job.jobInfo.company} - ${job.jobInfo.title}"),
+            div(`class` := "jvm-jobs-details-card-profile-job-details-company-and-location")(
+              JobComponents.summary(job)
+            )
+          ),
+          div(`class` := "jvm-jobs-details-card-apply-now-btn")(
+            a(href := job.jobInfo.externalUrl, target := "blank")(
+              button(`type` := "button", `class` := "btn btn-warning")("Apply now")
+            ),
+            p(MomentLib.unix(job.date / 1000).fromNow())
+          )
+        )
+      ),
+      div(`class` := "container-fluid")(
+        div(`class` := "container")(
+          div(`class` := "markdown-body overview-section")(
+            jobDescription(job)
+          )
         ),
-        h1(s"${job.jobInfo.company} - ${job.jobInfo.title}")
-      ),
-      div(`class` := "job-overview")(
-        JobComponents.summary(job)
-      ),
-      jobDescription(job),
-      a(
-        href := job.jobInfo.externalUrl,
-        `class` := "job-apply-action",
-        target := "blank"
-      )("Apply")
+        div(`class` := "container")(
+          div(`class` := "rok-last")(
+            div(`class` := "row")(
+              div(`class` := "col-md-6 col-sm-6 col-6")(
+                span(`class` := "rock-apply")("Apply for this job.")
+              ),
+              div(`class` := "col-md-6 col-sm-6 col-6")(
+                a(href := job.jobInfo.externalUrl, target := "blank")(
+                  button(`type` := "button", `class` := "rock-apply-btn")("Apply now")
+                )
+              )
+            )
+          )
+        )
+      )
     )
 
-  private def noJobPage = status.kind match {
-    case Page.StatusKind.LOADING => div("Loading...")
-    case Page.StatusKind.ERROR   => div("Ouch! This job doesn't exist.")
-    case Page.StatusKind.SUCCESS => div()
-  }
+  private def noJobPage =
+    div(`class` := "container-fluid the-rock")(
+      div(`class` := "row jvm-jobs-details-top-card")(
+        status.kind match {
+          case Page.StatusKind.LOADING => h1("Loading...")
+          case Page.StatusKind.ERROR   => h1("Ouch! This job doesn't exist.")
+          case Page.StatusKind.SUCCESS => h1("Unknown error.")
+        }
+      )
+    )
 
   override def view: Html[App.Message] = jobOpt match {
     case Some(job) => jobPage(job)
