@@ -111,17 +111,4 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
         height := "100"
       )
     )
-
-  protected def auxLink(location: String, text: String): Html[App.Message] =
-    a(
-      href := location,
-      `class` := "aux-link",
-      onEvent(
-        "click",
-        e => {
-          e.preventDefault()
-          Router.ChangeLocation(location)
-        }
-      )
-    )(text)
 }

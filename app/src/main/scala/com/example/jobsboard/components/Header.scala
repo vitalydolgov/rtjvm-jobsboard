@@ -36,40 +36,20 @@ object Header {
     )
   }
 
-  private def navLink(text: String, location: String)(locationToMessage: String => App.Message) = {
-    li(`class` := "nav-item")(
-      a(
-        href := location,
-        `class` := "nav-link",
-        onEvent(
-          "click",
-          e => {
-            e.preventDefault()
-            locationToMessage(location)
-          }
-        )
-      )(text)
-    )
-  }
-
-  private def simpleNavLink(text: String, location: String) = {
-    navLink(text, location)(Router.ChangeLocation(_))
-  }
-
   private def navLinks: List[Html[App.Message]] = {
     val constantLinks = List(
-      simpleNavLink("Jobs", Page.Urls.JOBS),
-      simpleNavLink("Post a Job", Page.Urls.POST_JOB)
+      Anchors.simpleNavLink("Jobs", Page.Urls.JOBS),
+      Anchors.simpleNavLink("Post a Job", Page.Urls.POST_JOB)
     )
 
     val unauthedLinks = List(
-      simpleNavLink("Login", Page.Urls.LOGIN),
-      simpleNavLink("Sign Up", Page.Urls.SIGNUP)
+      Anchors.simpleNavLink("Login", Page.Urls.LOGIN),
+      Anchors.simpleNavLink("Sign Up", Page.Urls.SIGNUP)
     )
 
     val authedLinks = List(
-      simpleNavLink("Profile", Page.Urls.PROFILE),
-      navLink("Log Out", Page.Urls.HASH)(_ => Session.Logout)
+      Anchors.simpleNavLink("Profile", Page.Urls.PROFILE),
+      Anchors.navLink("Log Out", Page.Urls.HASH)(_ => Session.Logout)
     )
 
     constantLinks ++ (

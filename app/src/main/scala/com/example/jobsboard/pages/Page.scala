@@ -15,6 +15,10 @@ object Page {
 
   final case class Status(message: String, kind: StatusKind)
 
+  object Status {
+    val LOADING = Page.Status("Loading", Page.StatusKind.LOADING)
+  }
+
   object Urls {
     val EMPTY = ""
     val HOME = "/"
@@ -26,6 +30,7 @@ object Page {
     val JOBS = "/jobs"
     val PROFILE = "/profile"
     val HASH = "#"
+    def JOB(id: String) = s"/jobs/$id"
   }
 
   import Urls.*

@@ -9,6 +9,7 @@ import io.circe.generic.auto.*
 
 import com.example.jobsboard.*
 import com.example.jobsboard.common.*
+import com.example.jobsboard.components.*
 import com.example.jobsboard.domain.auth.*
 
 object ResetPasswordPage {
@@ -85,6 +86,6 @@ final case class ResetPasswordPage(
     formInput("Recover Token", "token", "text", true, UpdateToken(_)),
     formInput("New Password", "password", "password", true, UpdateNewPassword(_)),
     button(`type` := "button", onClick(AttemptResetPassword))("Change Password"),
-    auxLink(Page.Urls.FORGOT_PASSWORD, "Don't have a token yet?")
+    Anchors.simpleNavLink("Don't have a token yet?", Page.Urls.FORGOT_PASSWORD)
   )
 }

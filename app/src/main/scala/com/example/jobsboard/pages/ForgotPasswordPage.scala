@@ -8,6 +8,7 @@ import io.circe.generic.auto.*
 
 import com.example.jobsboard.*
 import com.example.jobsboard.common.*
+import com.example.jobsboard.components.*
 import com.example.jobsboard.domain.auth.*
 
 object ForgotPasswordPage {
@@ -66,7 +67,7 @@ final case class ForgotPasswordPage(
   override def content: List[Html[App.Message]] = List(
     formInput("Email", "email", "text", true, UpdateEmail(_)),
     button(`type` := "button", onClick(AttemptResetPassword))("Send Email"),
-    auxLink(Page.Urls.RESET_PASSWORD, "Have a token?")
+    Anchors.simpleNavLink("Have a token?", Page.Urls.RESET_PASSWORD)
   )
 
 }

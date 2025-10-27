@@ -11,6 +11,7 @@ import cats.effect.IO
 import com.example.jobsboard.*
 import com.example.jobsboard.core.*
 import com.example.jobsboard.common.*
+import com.example.jobsboard.components.*
 import com.example.jobsboard.domain.auth.*
 
 object LoginPage {
@@ -79,6 +80,6 @@ final case class LoginPage(
     formInput("Email", "email", "text", true, UpdateEmail(_)),
     formInput("Password", "password", "password", true, UpdatePassword(_)),
     button(`type` := "button", onClick(AttemptLogin))("Log In"),
-    auxLink(Page.Urls.FORGOT_PASSWORD, "Forgot password?")
+    Anchors.simpleNavLink("Forgot password?", Page.Urls.FORGOT_PASSWORD)
   )
 }

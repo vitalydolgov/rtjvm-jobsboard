@@ -49,7 +49,7 @@ final case class JobListPage(
     filter: JobFilter = JobFilter(),
     jobs: List[Job] = List(),
     canLoadMore: Boolean = true,
-    status: Option[Page.Status] = Some(Page.Status("Loading", Page.StatusKind.LOADING))
+    status: Option[Page.Status] = Some(Page.Status.LOADING)
 ) extends Page {
 
   import JobListPage.*
@@ -103,7 +103,12 @@ final case class JobListPage(
         )
       ),
       div(`class` := "job-card-content")(
-        h4(s"${job.jobInfo.company} - ${job.jobInfo.title}")
+        h4(
+          Anchors.simpleNavLink(
+            s"${job.jobInfo.company} - ${job.jobInfo.title}",
+            Page.Urls.JOB(job.id.toString)
+          )
+        )
       ),
       div(`class` := "job-card-apply")(
         a(href := job.jobInfo.externalUrl, target := "blank")("Apply")
