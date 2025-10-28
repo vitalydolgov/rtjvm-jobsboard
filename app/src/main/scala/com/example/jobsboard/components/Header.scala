@@ -2,19 +2,13 @@ package com.example.jobsboard.components
 
 import tyrian.*
 import tyrian.Html.*
-import scala.scalajs.js
-import scala.scalajs.js.annotation.*
 
 import com.example.jobsboard.*
 import com.example.jobsboard.core.*
 import com.example.jobsboard.pages.*
+import com.example.jobsboard.common.*
 
 object Header {
-
-  @js.native
-  @JSImport("url:/static/images/logo.png", JSImport.Default)
-  private val logoImage: String = js.native
-
   private def logo = {
     div(
       a(
@@ -30,7 +24,7 @@ object Header {
       )(
         img(
           `class` := "home-logo",
-          src := logoImage,
+          src := Constants.logoImage,
           alt := "Jobs Board"
         )
       )

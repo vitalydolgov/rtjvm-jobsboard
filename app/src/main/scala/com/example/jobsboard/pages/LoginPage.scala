@@ -80,6 +80,6 @@ final case class LoginPage(
     formInput("Email", "email", "text", true, UpdateEmail(_)),
     formInput("Password", "password", "password", true, UpdatePassword(_)),
     button(`type` := "button", onClick(AttemptLogin))("Log In"),
-    Anchors.simpleNavLink("Forgot password?", Page.Urls.FORGOT_PASSWORD, "nav-link")
+    Anchors.simpleNavLink("Forgot password?", Page.Urls.FORGOT_PASSWORD, "auth-link")
   )
 }

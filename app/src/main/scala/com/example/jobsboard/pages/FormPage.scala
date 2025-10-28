@@ -8,6 +8,7 @@ import scala.concurrent.duration.FiniteDuration
 
 import com.example.jobsboard.*
 import com.example.jobsboard.core.*
+import com.example.jobsboard.common.*
 
 abstract class FormPage(title: String, status: Option[Page.Status]) extends Page {
 
@@ -28,25 +29,37 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
 
   protected def content: List[Html[App.Message]]
 
+  private def statusOpt =
+    status.map(s => div(s.message)).getOrElse(div())
+
   override def view: Html[App.Message] =
-    div(`class` := "form-section")(
-      div(`class` := "top-section")(
-        h1(title)
-      ),
-      form(
-        `class` := "form",
-        id := "form",
-        onEvent(
-          "submit",
-          e => {
-            e.preventDefault()
-            App.NoOp
-          }
+    div(`class` := "row")(
+      div(`class` := "col-md-5 p-0")(
+        div(`class` := "logo")(
+          img(src := Constants.logoImage)
         )
-      )(
-        content
       ),
-      status.map(s => div(s.message)).getOrElse(div())
+      div(`class` := "col-md-7")(
+        div(`class` := "form-section")(
+          div(`class` := "top-section")(
+            h1(span(title)),
+            statusOpt
+          ),
+          form(
+            `class` := "form",
+            id := "form",
+            onEvent(
+              "submit",
+              e => {
+                e.preventDefault()
+                App.NoOp
+              }
+            )
+          )(
+            content
+          )
+        )
+      )
     )
 
   protected def formInput(
@@ -56,12 +69,16 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
       isRequired: Boolean,
       onChange: String => App.Message
   ) =
-    div(`class` := "form-input")(
-      label(`for` := uid, `class` := "form-label")(
-        if (isRequired) span("*") else span(),
-        text(name)
-      ),
-      input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
+    div(`class` := "row")(
+      div(`class` := "col-md-12")(
+        div(`class` := "form-input")(
+          label(`for` := uid, `class` := "form-label")(
+            if (isRequired) span("*") else span(),
+            text(name)
+          ),
+          input(`type` := kind, `class` := "form-control", id := uid, onInput(onChange))
+        )
+      )
     )
 
   protected def formTextArea(
