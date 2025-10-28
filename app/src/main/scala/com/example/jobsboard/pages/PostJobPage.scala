@@ -189,7 +189,7 @@ final case class PostJobPage(
     formInput("Title", "title", "text", true, UpdateTitle(_)),
     formTextArea("Description", "description", true, UpdateDescription(_)),
     formInput("URL", "external-url", "text", true, UpdateExternalUrl(_)),
-    formInput("Remote", "remote", "checkbox", false, _ => ToggleRemote),
+    formCheckbox("Remote", "remote", _ => ToggleRemote),
     formInput("Location", "location", "text", true, UpdateLocation(_)),
     formInput("Salary Lo", "salary-lo", "number", false, str => UpdateSalaryLo(parseNumber(str))),
     formInput("Salary Hi", "salary-hi", "number", false, str => UpdateSalaryHi(parseNumber(str))),
@@ -203,7 +203,7 @@ final case class PostJobPage(
   )
 
   private def notLoggedInView: Html[App.Message] =
-    div("You're not logged in yet.")
+    div(`class` := "not-logged-in")("You're not logged in yet.")
 
   override def view: Html[App.Message] =
     if (Session.isActive) super.view

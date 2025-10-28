@@ -77,7 +77,7 @@ final case class ProfilePage(
   )
 
   private def notLoggedInView: Html[App.Message] =
-    div("You're not logged in yet.")
+    div(`class` := "not-logged-in")("You're not logged in yet.")
 
   override def view: Html[App.Message] =
     if (Session.isActive) super.view

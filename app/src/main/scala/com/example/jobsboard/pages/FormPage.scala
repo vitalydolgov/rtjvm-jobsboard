@@ -29,8 +29,11 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
 
   protected def content: List[Html[App.Message]]
 
-  private def statusOpt =
-    status.map(s => div(s.message)).getOrElse(div())
+  private def errorOpt =
+    status
+      .filter(s => s.kind == Page.StatusKind.ERROR && s.message.nonEmpty)
+      .map(s => div(`class` := "form-errors")(s.message))
+      .getOrElse(div())
 
   override def view: Html[App.Message] =
     div(`class` := "row")(
@@ -43,7 +46,7 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
         div(`class` := "form-section")(
           div(`class` := "top-section")(
             h1(span(title)),
-            statusOpt
+            errorOpt
           ),
           form(
             `class` := "form",
@@ -81,18 +84,38 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
       )
     )
 
+  protected def formCheckbox(
+      name: String,
+      uid: String,
+      onChange: String => App.Message
+  ) =
+    div(`class` := "row")(
+      div(`class` := "col-md-12 job")(
+        div(`class` := "form-check form-switch")(
+          label(`for` := uid, `class` := "form-check-label")(
+            text(name)
+          ),
+          input(`type` := "checkbox", `class` := "form-check-input", id := uid, onInput(onChange))
+        )
+      )
+    )
+
   protected def formTextArea(
       name: String,
       uid: String,
       isRequired: Boolean,
       onChange: String => App.Message
   ) =
-    div(`class` := "form-input")(
-      label(`for` := uid, `class` := "form-label")(
-        if (isRequired) span("*") else span(),
-        text(name)
-      ),
-      textarea(`class` := "form-control", id := uid, onInput(onChange))("")
+    div(`class` := "row")(
+      div(`class` := "col-md-12")(
+        div(`class` := "form-input")(
+          label(`for` := uid, `class` := "form-label")(
+            if (isRequired) span("*") else span(),
+            text(name)
+          ),
+          textarea(`class` := "form-control", id := uid, onInput(onChange))("")
+        )
+      )
     )
 
   protected def formImageUpload(
@@ -119,13 +142,6 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
               onChange(None)
           }
         )
-      ),
-      img(
-        id := "preview",
-        src := image.getOrElse(""),
-        alt := "Preview",
-        width := "100",
-        height := "100"
       )
     )
 }
