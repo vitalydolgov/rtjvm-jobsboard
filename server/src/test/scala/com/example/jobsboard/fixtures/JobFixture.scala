@@ -29,7 +29,7 @@ trait JobFixture {
       seniority = Some("Senior"),
       other = None
     ),
-    active = false
+    active = true
   )
 
   val ScalaDeveloperENCOMUpdated = Job(
@@ -53,7 +53,7 @@ trait JobFixture {
       seniority = Some("Senior"),
       other = None
     ),
-    active = false
+    active = true
   )
 
   val ScalaDeveloperDillingerSystems = Job(

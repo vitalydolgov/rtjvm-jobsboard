@@ -33,3 +33,6 @@ app/.parcel-cache/
 
 # Tools
 *.paw
+
+# Environment
+.env

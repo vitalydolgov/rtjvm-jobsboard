@@ -42,30 +42,27 @@ object PostJobPage {
       override val location: String = Constants.endpoints.postJob
       override val method: Method = Method.Post
 
-      override val onResponse: Response => Message = resp =>
-        resp.status match {
-          case Status(code, _) if code >= 200 && code < 300 =>
-            val jobId = resp.body
-            PostJobSuccess(jobId)
-          case Status(401, _) =>
-            PostJobError("You're unauthorized, please log in.")
-          case Status(code, _) if code >= 400 && code < 500 =>
-            val rawJson = resp.body
-            val parsedJson = parse(rawJson).flatMap(_.hcursor.get[String]("error"))
-            parsedJson match {
-              case Left(error)    => PostJobError(s"Error: ${error.getMessage}")
-              case Right(message) => PostJobError(message)
-            }
-          case _ => PostJobError("Unknown error.")
-        }
+      override val onResponse: Response => Message =
+        Endpoint.onResponseText(PostJobSuccess(_), PostJobError(_))
 
       override val onError: HttpError => Message =
+        err => PostJobError(err.toString)
+    }
+
+    val postJobPromoted = new Endpoint[App.Message] {
+      override val location: String = Constants.endpoints.postJobPromoted
+      override val method: Method = Method.Post
+
+      override val onResponse: Response => App.Message =
+        Endpoint.onResponseText(Router.ExternalRedirect(_), PostJobError(_))
+
+      override val onError: HttpError => App.Message =
         err => PostJobError(err.toString)
     }
   }
 
   object Commands {
-    def postJob(
+    def postJob(isPromoted: Boolean)(
         company: String,
         title: String,
         description: String,
@@ -80,8 +77,12 @@ object PostJobPage {
         image: Option[String],
         seniority: Option[String],
         other: Option[String]
-    ): Cmd[IO, Message] = {
-      Endpoints.postJob.callAuthorized(
+    ): Cmd[IO, App.Message] = {
+      val endpoint =
+        if (isPromoted) Endpoints.postJobPromoted
+        else Endpoints.postJob
+
+      endpoint.callAuthorized(
         JobInfo(
           company,
           title,
@@ -159,7 +160,7 @@ final case class PostJobPage(
     case AttemptPostJob =>
       (
         this,
-        Commands.postJob(
+        Commands.postJob(isPromoted = true)(
           company,
           title,
           description,
@@ -184,28 +185,28 @@ final case class PostJobPage(
   private def parseNumber(string: String) =
     Try(string.toInt).getOrElse(0)
 
-  override def content: List[Html[App.Message]] = List(
-    formInput("Company", "company", "text", true, UpdateCompany(_)),
-    formInput("Title", "title", "text", true, UpdateTitle(_)),
-    formTextArea("Description", "description", true, UpdateDescription(_)),
-    formInput("URL", "external-url", "text", true, UpdateExternalUrl(_)),
-    formCheckbox("Remote", "remote", _ => ToggleRemote),
-    formInput("Location", "location", "text", true, UpdateLocation(_)),
-    formInput("Salary Lo", "salary-lo", "number", false, str => UpdateSalaryLo(parseNumber(str))),
-    formInput("Salary Hi", "salary-hi", "number", false, str => UpdateSalaryHi(parseNumber(str))),
-    formInput("Currency", "currency", "text", false, UpdateCurrency(_)),
-    formInput("Country", "country", "text", false, UpdateCountry(_)),
-    formInput("Tags", "tags", "text", false, UpdateTags(_)),
-    formImageUpload("Logo", "logo", image, UpdateImageFile(_)),
-    formInput("Seniority", "seniority", "text", false, UpdateSeniority(_)),
-    formInput("Other", "other", "text", false, UpdateOther(_)),
-    button(`type` := "button", onClick(AttemptPostJob))("Post Job")
+  private def invalidContent = List(
+    p(`class` := "form-text")("You're not logged in yet.")
   )
 
-  private def notLoggedInView: Html[App.Message] =
-    div(`class` := "not-logged-in")("You're not logged in yet.")
-
-  override def view: Html[App.Message] =
-    if (Session.isActive) super.view
-    else notLoggedInView
+  override def content: List[Html[App.Message]] =
+    if (!Session.isActive) invalidContent
+    else
+      List(
+        formInput("Company", "company", "text", true, UpdateCompany(_)),
+        formInput("Title", "title", "text", true, UpdateTitle(_)),
+        formTextArea("Description", "description", true, UpdateDescription(_)),
+        formInput("URL", "external-url", "text", true, UpdateExternalUrl(_)),
+        formCheckbox("Remote", "remote", _ => ToggleRemote),
+        formInput("Location", "location", "text", true, UpdateLocation(_)),
+        formInput("Salary Lo", "salary-lo", "number", false, s => UpdateSalaryLo(parseNumber(s))),
+        formInput("Salary Hi", "salary-hi", "number", false, s => UpdateSalaryHi(parseNumber(s))),
+        formInput("Currency", "currency", "text", false, UpdateCurrency(_)),
+        formInput("Country", "country", "text", false, UpdateCountry(_)),
+        formInput("Tags", "tags", "text", false, UpdateTags(_)),
+        formImageUpload("Logo", "logo", image, UpdateImageFile(_)),
+        formInput("Seniority", "seniority", "text", false, UpdateSeniority(_)),
+        formInput("Other", "other", "text", false, UpdateOther(_)),
+        button(`type` := "button", onClick(AttemptPostJob))("Post Job")
+      )
 }

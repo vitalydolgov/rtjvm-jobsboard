@@ -1,4 +1,5 @@
-addSbtPlugin("com.github.sbt"     % "sbt-native-packager"      % "1.9.11")
-addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.19.0")
-addSbtPlugin("ch.epfl.scala"      % "sbt-scalajs-bundler"      % "0.21.0")
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.11")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.19.0")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalajs-bundler" % "0.21.0")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.2.0")
+addSbtPlugin("au.com.onegeek" % "sbt-dotenv" % "2.1.204")

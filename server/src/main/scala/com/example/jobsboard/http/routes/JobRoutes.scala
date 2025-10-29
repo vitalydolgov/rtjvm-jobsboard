@@ -7,6 +7,7 @@ import org.http4s.*
 import org.http4s.dsl.*
 import org.http4s.server.*
 import org.http4s.circe.CirceEntityCodec.*
+import org.typelevel.ci.CIStringSyntax
 import tsec.authentication.asAuthed
 import org.typelevel.log4cats.Logger
 
@@ -23,7 +24,7 @@ import com.example.jobsboard.domain.pagination.*
 import com.example.jobsboard.domain.security.*
 import com.example.jobsboard.domain.user.*
 
-class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F])
+class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F], stripe: Stripe[F])
     extends HttpValidationDsl[F] {
 
   object OffsetQueryParam extends OptionalQueryParamDecoderMatcher[Int]("offset")
@@ -84,11 +85,40 @@ class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F]
     }
   }
 
-  private val unauthedRoutes = allJobsRoute <+> allFilters <+> findJobRoute
+  private val promotedJobRoute: AuthRoute[F] = {
+    case seqreq @ POST -> Root / "promoted" asAuthed user =>
+      seqreq.request.validate[JobInfo] { jobInfo =>
+        for {
+          jobId <- jobs.create(user.email, jobInfo)
+          session <- stripe.createCheckoutSession(jobId.toString, user.email)
+          resp <- session.map(c => Ok(c.getUrl())).getOrElse(NotFound())
+        } yield resp
+      }
+  }
+
+  private val promotedJobWebhook: HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ POST -> Root / "webhook" =>
+      val sigHeader =
+        req.headers.get(ci"Stripe-Signature").flatMap(_.toList.headOption).map(_.value)
+      sigHeader match {
+        case None =>
+          Logger[F].info("Invalid webhook event.") *>
+            Forbidden("Invalid Stripe signature.")
+        case Some(sig) =>
+          for {
+            payload <- req.bodyText.compile.string
+            handled <- stripe.handleWebhook(payload, sig, id => jobs.activate(UUID.fromString(id)))
+            resp <- if (handled.nonEmpty) Ok() else NoContent()
+          } yield resp
+      }
+  }
+
+  private val unauthedRoutes = allJobsRoute <+> allFilters <+> findJobRoute <+> promotedJobWebhook
   private val authedRoutes = SecuredHandler[F].liftService(
-    createJobRoute.restrictedTo(allRoles) |+|
+    createJobRoute.restrictedTo(adminOnly) |+|
       updateJobRoute.restrictedTo(allRoles) |+|
-      deleteJobRoute.restrictedTo(allRoles)
+      deleteJobRoute.restrictedTo(allRoles) |+|
+      promotedJobRoute.restrictedTo(allRoles)
   )
 
   val routes = Router(
@@ -97,5 +127,6 @@ class JobRoutes[F[_]: Concurrent: Logger: SecuredHandler] private (jobs: Jobs[F]
 }
 
 object JobRoutes {
-  def apply[F[_]: Concurrent: Logger: SecuredHandler](jobs: Jobs[F]) = new JobRoutes[F](jobs)
+  def apply[F[_]: Concurrent: Logger: SecuredHandler](jobs: Jobs[F], stripe: Stripe[F]) =
+    new JobRoutes[F](jobs, stripe)
 }

@@ -58,11 +58,24 @@ class JobsSpec
       }
     }
 
-    "should create a new job" in {
+    "should create a new job, initially inactive" in {
       transactor.use { xa =>
         val program = for {
           jobs <- LiveJobs[IO](xa)
           jobId <- jobs.create("jobs@dillingersystems.io", ScalaDeveloperDillingerSystems.jobInfo)
+          job <- jobs.find(jobId)
+        } yield job
+
+        program.asserting(_.map(_.jobInfo) shouldBe None)
+      }
+    }
+
+    "should activate a new job" in {
+      transactor.use { xa =>
+        val program = for {
+          jobs <- LiveJobs[IO](xa)
+          jobId <- jobs.create("jobs@dillingersystems.io", ScalaDeveloperDillingerSystems.jobInfo)
+          _ <- jobs.activate(jobId)
           job <- jobs.find(jobId)
         } yield job
 

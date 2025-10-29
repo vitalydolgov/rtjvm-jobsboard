@@ -20,6 +20,7 @@ trait Jobs[F[_]] {
   def all(filter: JobFilter, pagination: Pagination): F[List[Job]]
   def find(id: UUID): F[Option[Job]]
   def update(id: UUID, jobInfo: JobInfo): F[Option[Job]]
+  def activate(id: UUID): F[Int]
   def delete(id: UUID): F[Int]
   def possibleFilters(): F[JobFilter]
 }
@@ -90,6 +91,7 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
       other,
       active
     FROM jobs
+    WHERE active = true
     """
       .query[Job]
       .to[List]
@@ -129,7 +131,8 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
       filter.seniorities.toNel.map(seniorities => Fragments.in(fr"seniority", seniorities)),
       filter.tags.toNel.map(tags => Fragments.or(tags.toList.map(tag => fr"$tag=any(tags)")*)),
       filter.maxSalary.map(salary => fr"salaryHi > $salary"),
-      filter.remote.some.filter(identity).map(remote => fr"remote = $remote")
+      filter.remote.some.filter(identity).map(remote => fr"remote = $remote"),
+      Some(fr"active = true")
     )
 
     val paginationFragment: Fragment =
@@ -168,7 +171,8 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
       other,
       active
     FROM jobs
-    WHERE id = $id
+    WHERE id = $id 
+      AND active = true
     """
       .query[Job]
       .option
@@ -197,6 +201,10 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
       .transact(xa)
       .flatMap { _ => find(id) }
 
+  override def activate(id: UUID): F[Int] =
+    Logger[F].info(s"Updating $id") *>
+      sql"UPDATE jobs SET active = true WHERE id = $id".update.run.transact(xa)
+
   override def delete(id: UUID): F[Int] =
     sql"""
     DELETE FROM jobs
@@ -207,11 +215,31 @@ class LiveJobs[F[_]: MonadCancelThrow: Logger] private (xa: Transactor[F]) exten
   override def possibleFilters(): F[JobFilter] =
     sql"""
     SELECT
-      ARRAY(SELECT DISTINCT(company) FROM jobs) AS companies,
-      ARRAY(SELECT DISTINCT(location) FROM jobs) AS locations,
-      ARRAY(SELECT DISTINCT(country) FROM jobs WHERE country IS NOT NULL) AS countries,
-      ARRAY(SELECT DISTINCT(seniority) FROM jobs WHERE seniority IS NOT NULL) AS seniorities,
-      ARRAY(SELECT DISTINCT(UNNEST(tags)) FROM jobs) AS tags,
+      ARRAY(
+        SELECT DISTINCT(company) 
+        FROM jobs 
+        WHERE active = true
+      ) AS companies,
+      ARRAY(
+        SELECT DISTINCT(location) 
+        FROM jobs 
+        WHERE active = true
+      ) AS locations,
+      ARRAY(
+        SELECT DISTINCT(country) 
+        FROM jobs
+        WHERE country IS NOT NULL AND active = true
+      ) AS countries,
+      ARRAY(
+        SELECT DISTINCT(seniority) 
+        FROM jobs 
+        WHERE seniority IS NOT NULL AND active = true
+      ) AS seniorities,
+      ARRAY(
+        SELECT DISTINCT(UNNEST(tags)) 
+        FROM jobs 
+        WHERE active = true
+      ) AS tags,
       MAX(salaryHi),
       false
     FROM jobs

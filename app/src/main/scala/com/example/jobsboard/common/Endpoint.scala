@@ -71,4 +71,21 @@ object Endpoint {
       case Status(_, message) => onError(s"Error: $message")
     }
   }
+
+  def onResponseText[M](
+      onSuccess: String => M,
+      onError: String => M
+  ): Response => M = resp =>
+    resp.status match {
+      case Status(code, _) if code >= 200 && code < 300 =>
+        onSuccess(resp.body)
+      case Status(code, _) if code >= 400 && code < 500 =>
+        val rawJson = resp.body
+        val parsedJson = parse(rawJson).flatMap(_.hcursor.get[String]("error"))
+        parsedJson match {
+          case Left(error)    => onError(s"Error: ${error.getMessage}")
+          case Right(message) => onError(message)
+        }
+      case _ => onError("Unknown error.")
+    }
 }
