@@ -33,7 +33,7 @@ class JobRoutesSpec
   val jobs: Jobs[IO] = new Jobs[IO] {
     override def create(ownerEmail: String, jobInfo: JobInfo): IO[UUID] = IO.pure(NewJobUuid)
 
-    override def all(): IO[List[Job]] = IO.pure(List(ScalaDeveloperENCOM))
+    override def all(): fs2.Stream[IO, Job] = fs2.Stream.emit(ScalaDeveloperENCOM)
 
     override def all(filter: JobFilter, pagination: Pagination): IO[List[Job]] =
       if (filter.remote) IO.pure(List())

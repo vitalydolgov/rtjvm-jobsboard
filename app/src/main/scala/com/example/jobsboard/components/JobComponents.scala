@@ -4,6 +4,7 @@ import tyrian.*
 import tyrian.Html.*
 
 import com.example.jobsboard.*
+import com.example.jobsboard.common.*
 import com.example.jobsboard.pages.*
 import com.example.jobsboard.domain.job.*
 
@@ -41,14 +42,17 @@ object JobComponents {
       detailOpt("tags", job.jobInfo.tags.map(_.mkString(", ")))
     )
 
+  def jobImage(job: Job): Html[App.Message] =
+    img(
+      `class` := "img-fluid",
+      src := job.jobInfo.image.getOrElse(Constants.jobPlaceholderImage),
+      alt := job.jobInfo.title
+    )
+
   def card(job: Job): Html[App.Message] = {
     div(`class` := "jvm-recent-jobs-cards")(
       div(`class` := "jvm-recent-jobs-card-img")(
-        img(
-          `class` := "img-fluid",
-          src := job.jobInfo.image.getOrElse(""),
-          alt := job.jobInfo.title
-        )
+        jobImage(job)
       ),
       div(`class` := "jvm-recent-jobs-card-contents")(
         h5(

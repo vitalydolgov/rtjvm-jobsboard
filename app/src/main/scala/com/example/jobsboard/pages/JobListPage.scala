@@ -96,8 +96,10 @@ final case class JobListPage(
   private def loadMoreButtonOpt: Option[Html[App.Message]] = status.map { status =>
     div(`class` := "load-more-action")(
       status match {
-        case Page.Status(_, Page.StatusKind.LOADING)     => div("Loading...")
-        case Page.Status(message, Page.StatusKind.ERROR) => div(message)
+        case Page.Status(_, Page.StatusKind.LOADING) =>
+          div(`class` := "page-status-loading")("Loading...")
+        case Page.Status(message, Page.StatusKind.ERROR) =>
+          div(`class` := "page-status-error")(message)
         case Page.Status(_, Page.StatusKind.SUCCESS) =>
           if (canLoadMore)
             button(`type` := "button", `class` := "load-more-button", onClick(LoadMore))(
@@ -111,6 +113,9 @@ final case class JobListPage(
 
   override def view: Html[App.Message] =
     section(`class` := "section-1")(
+      div(`class` := "container job-list-hero")(
+        h1(`class` := "job-list-title")("Jobs Board")
+      ),
       div(`class` := "container")(
         div(`class` := "row jvm-recent-jobs-body")(
           div(`class` := "col-lg-4")(

@@ -29,10 +29,16 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
 
   protected def content: List[Html[App.Message]]
 
-  private def errorOpt =
+  private def statusOpt =
     status
-      .filter(s => s.kind == Page.StatusKind.ERROR && s.message.nonEmpty)
-      .map(s => div(`class` := "form-errors")(s.message))
+      .map {
+        case Page.Status(message, Page.StatusKind.ERROR) =>
+          div(`class` := "page-status-error")(message)
+        case Page.Status(message, Page.StatusKind.SUCCESS) =>
+          div(`class` := "page-status-success")(message)
+        case Page.Status(message, Page.StatusKind.LOADING) =>
+          div(`class` := "page-status-loading")(message)
+      }
       .getOrElse(div())
 
   override def view: Html[App.Message] =
@@ -46,7 +52,7 @@ abstract class FormPage(title: String, status: Option[Page.Status]) extends Page
         div(`class` := "form-section")(
           div(`class` := "top-section")(
             h1(span(title)),
-            errorOpt
+            statusOpt
           ),
           form(
             `class` := "form",

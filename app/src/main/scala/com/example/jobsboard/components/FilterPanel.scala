@@ -73,10 +73,10 @@ final case class FilterPanel(
     case _            => (this, Cmd.None)
   }
 
-  private def errorText =
+  private def errorTextOpt =
     errorOpt
       .map { err =>
-        div(`class` := "filter-panel-error")(err)
+        div(`class` := "page-status-error")(err)
       }
       .getOrElse(div())
 
@@ -209,7 +209,7 @@ final case class FilterPanel(
           attribute("data-bs-parent", "#accordionFlushExample")
         )(
           div(`class` := "accordion-body p-0")(
-            errorText,
+            errorTextOpt,
             salaryFilter,
             remoteCheckbox,
             checkboxGroup("Companies", possibleFilters.companies),

@@ -8,7 +8,8 @@ import cats.implicits.*
 import cats.effect.IO
 import io.circe.parser.*
 import io.circe.generic.auto.*
-import org.scalajs.dom.{File, FileReader}
+import org.scalajs.dom.{File, FileReader, document}
+import org.scalajs.dom.{HTMLImageElement, HTMLCanvasElement, CanvasRenderingContext2D}
 import scala.util.Try
 
 import com.example.jobsboard.*
@@ -102,12 +103,38 @@ object PostJobPage {
       )
     }
 
-    def loadFile(fileOpt: Option[File]): Cmd[IO, Message] =
+    private def getImageDimensions(width: Int, height: Int): (Int, Int) =
+      if (width >= height) {
+        val ratio = width * 1.0 / 256
+        val newWidth = width / ratio
+        val newHeight = height / ratio
+        (newWidth.toInt, newHeight.toInt)
+      } else {
+        val (newHeight, newWidth) = getImageDimensions(height, width)
+        (newWidth, newHeight)
+      }
+
+    def loadFileResized(fileOpt: Option[File]): Cmd[IO, Message] =
       Cmd.Run[IO, Option[String], Message] {
         fileOpt.traverse { file =>
           IO.async_ { cb =>
             val reader = new FileReader
-            reader.onload = _ => cb(Right(reader.result.toString))
+            reader.onload = _ => {
+              val image = document.createElement("img").asInstanceOf[HTMLImageElement]
+              image.addEventListener(
+                "load",
+                _ => {
+                  val canvas = document.createElement("canvas").asInstanceOf[HTMLCanvasElement]
+                  val context = canvas.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
+                  val (width, height) = getImageDimensions(image.width, image.height)
+                  canvas.width = width
+                  canvas.height = height
+                  context.drawImage(image, 0, 0, canvas.width, canvas.height)
+                  cb(Right(canvas.toDataURL(file.`type`)))
+                }
+              )
+              image.src = reader.result.toString
+            }
             reader.readAsDataURL(file)
           }
         }
@@ -153,7 +180,7 @@ final case class PostJobPage(
     case UpdateCurrency(currency)       => (this.copy(currency = Some(currency)), Cmd.None)
     case UpdateCountry(country)         => (this.copy(country = Some(country)), Cmd.None)
     case UpdateTags(tags)               => (this.copy(tags = Some(tags)), Cmd.None)
-    case UpdateImageFile(file)          => (this, Commands.loadFile(file))
+    case UpdateImageFile(file)          => (this, Commands.loadFileResized(file))
     case UpdateImage(image)             => (this.copy(image = image), Cmd.None)
     case UpdateSeniority(seniority)     => (this.copy(seniority = Some(seniority)), Cmd.None)
     case UpdateOther(other)             => (this.copy(other = Some(other)), Cmd.None)
@@ -207,6 +234,8 @@ final case class PostJobPage(
         formImageUpload("Logo", "logo", image, UpdateImageFile(_)),
         formInput("Seniority", "seniority", "text", false, UpdateSeniority(_)),
         formInput("Other", "other", "text", false, UpdateOther(_)),
-        button(`type` := "button", onClick(AttemptPostJob))("Post Job")
+        button(`class` := "form-submit-btn", `type` := "button", onClick(AttemptPostJob))(
+          "Post Job - $" + Constants.advertPriceUSD
+        )
       )
 }
