@@ -1,7 +1,8 @@
 package com.example.jobsboard.common
 
-import scala.scalajs.js
+import scala.scalajs.{js, LinkingInfo}
 import scala.scalajs.js.annotation.*
+import org.scalajs.dom.window
 
 object Constants {
   @js.native
@@ -19,7 +20,10 @@ object Constants {
   val advertPriceUSD = 99
 
   object endpoints {
-    val root = "http://localhost:8081"
+    val root =
+      if (LinkingInfo.developmentMode) "http://localhost:8081"
+      else window.location.origin
+
     val signup = s"$root/api/auth/users"
     val login = s"$root/api/auth/login"
     val logout = s"$root/api/auth/logout"
