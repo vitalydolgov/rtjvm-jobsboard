@@ -34,8 +34,25 @@ object HttpApi {
       users: Users[F],
       securityConfig: SecurityConfig
   ): F[Authenticator[F]] = {
-    val identityStore: IdentityStore[F, String, User] = (email: String) =>
-      OptionT(users.find(email))
+    val identityStoreF: F[IdentityStore[F, String, User]] =
+      Ref.of[F, Map[String, User]](Map.empty).map { ref =>
+        new BackingStore[F, String, User] {
+          override def get(email: String): OptionT[F, User] = {
+            val eff = for {
+              cachedUserOpt <- ref.get.map(m => m.get(email))
+              userOpt <- if (cachedUserOpt.isEmpty) users.find(email) else cachedUserOpt.pure[F]
+              _ <- if (cachedUserOpt.isEmpty) userOpt.map(put).sequence else None.pure[F]
+            } yield userOpt
+
+            OptionT(eff)
+          }
+          override def put(user: User): F[User] = ref.modify { m =>
+            (m + (user.email -> user), user)
+          }
+          override def update(user: User): F[User] = put(user)
+          override def delete(email: String): F[Unit] = ref.modify(m => (m - email, ()))
+        }
+      }
 
     val tokenStoreF = Ref.of[F, Map[SecureRandomId, JwtToken]](Map.empty).map { ref =>
       new BackingStore[F, SecureRandomId, JwtToken] {
@@ -58,6 +75,7 @@ object HttpApi {
     for {
       signingKey <- signingKeyF
       tokenStore <- tokenStoreF
+      identityStore <- identityStoreF
     } yield JWTAuthenticator.backed.inBearerToken(
       expiryDuration = securityConfig.jwtExpiryDuration,
       maxIdle = None,
